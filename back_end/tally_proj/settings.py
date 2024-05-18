@@ -33,13 +33,14 @@ ALLOWED_HOSTS = []
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'be-paid_db',      # Name of your PostgreSQL database
-        'USER': 'be_paid_user',      # PostgreSQL username
-        'PASSWORD': 'be_paid_password',  # PostgreSQL password
-        'HOST': 'localhost',               # PostgreSQL host (if running locally)
-        'PORT': '5432',                    # PostgreSQL port (default is 5432)
+        'NAME': 'be-paid_db',
+        'USER': 'be_paid_user',
+        'PASSWORD': 'be_paid_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 
 # Application definition
@@ -96,17 +97,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'tally_proj.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation

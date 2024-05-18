@@ -15,7 +15,7 @@ class Customers(models.Model):
 
 
     def __str__(self):
-        return f"{(self.account)} - Due: {self.total_due}"
+        return f"{(self.account)}"
 
 class Invoice(models.Model):
     invoice = models.ForeignKey(Customers, on_delete=models.CASCADE, related_name='invoice_details', default=None)
@@ -33,6 +33,7 @@ class Comments(models.Model):
     date = models.DateField(null=True, blank=True)
     invoice_list = models.CharField(max_length=1000, null=True, blank=True)
     remarks = models.CharField(max_length=1000, null=True, blank=True)
+    amount_promised = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     sales_follow_msg = models.CharField(max_length=1000, null=True, blank=True)
     sales_follow_response = models.CharField(max_length=1000, null=True, blank=True)
     sales_up_date = models.DateField(null=True, blank=True)

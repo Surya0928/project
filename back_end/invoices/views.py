@@ -61,6 +61,7 @@ def update_csv_file_format(csv_data):
 
 @csrf_exempt
 @require_POST
+
 @transaction.atomic
 def process_uploaded_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -73,11 +74,11 @@ def process_uploaded_csv(request):
             # Step 2: Convert updated CSV data back to CSV file and process
             df = pd.read_csv(BytesIO(updated_csv_data))
 
-            # Step 3: Delete existing Customers and Invoice instances
-            Customers.objects.all().delete()
-            Invoice.objects.all().delete()
+            # Step 3: Delete existing Customers and Invoice instances from PostgreSQL
+            Customers.objects.using('default').all().delete()
+            Invoice.objects.using('default').all().delete()
 
-            # Step 4: Import data from the updated CSV DataFrame
+            # Step 4: Import data from the updated CSV DataFrame into PostgreSQL
             import_data_from_csv(df)
 
             return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
@@ -94,12 +95,8 @@ def import_data_from_csv(df):
 
     for company in unique_list:
         account = company
-        name = ''
-        phone_number = ''
-        sales_person = ''
-        invoices, total_due, optimal_due, threshold_due, over_due = 0.0,0.0,0.0,0.0,0.0
+        invoices, total_due, optimal_due, threshold_due, over_due = 0.0, 0.0, 0.0, 0.0, 0.0
         for _, each in df.iterrows():
-            # print(int(each['days_passed']))
             if each['party_name'] == company:
                 invoices += 1
                 total_due += float(each['pending_amount'])
@@ -109,55 +106,40 @@ def import_data_from_csv(df):
                     threshold_due += float(each['pending_amount'])
                 elif int(each['days_passed']) > 90:
                     over_due += float(each['pending_amount'])
-            if not name:
-                name = each['name']
-            if not phone_number:
-                phone_number = each['phone_number']
-            if not sales_person:
-                sales_person = each['sales_person']
 
-        # print(company, over_due)
-        invoice = Customers.objects.get_or_create(
+        invoice = Customers.objects.using('default').update_or_create(
             account=account,
-            name = name,
-            phone_number = phone_number,
-            optimal_due=round(optimal_due),
-            threshold_due=round(threshold_due),
-            over_due=round(over_due),
-            total_due=round(total_due),
-            invoices=invoices,
-            promised_date = None,
-            promised_amount = 0.0,
-            sales_person = sales_person,
+            defaults={
+                'optimal_due': round(optimal_due),
+                'threshold_due': round(threshold_due),
+                'over_due': round(over_due),
+                'total_due': round(total_due),
+                'invoices': invoices,
+                'promised_date': None,
+                'promised_amount': 0.0,
+            }
         )
 
-
     for _, row in df.iterrows():
-        # Retrieve the Customers instance based on account (assuming account is unique)
         try:
-            invoice = Customers.objects.get(account=row['party_name'])
+            customer = Customers.objects.using('default').get(account=row['party_name'])
         except Customers.DoesNotExist:
-            # Handle if the corresponding invoice is not found
-            continue  # Skip processing this row if invoice not found
-        
-        # Convert date strings to YYYY-MM-DD format
+            continue
+
         try:
             date = datetime.strptime(row['invoice_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
             due_on = datetime.strptime(row['due_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
         except ValueError:
-            # Handle invalid date format
-            continue  # Skip processing this row if date conversion fails
-        
-        # Create Invoice instance and assign fields
-        invoice_detail = Invoice.objects.create(
-            invoice=invoice,
+            continue
+
+        Invoice.objects.using('default').create(
+            invoice=customer,
             date=date,
             ref_no=row['ref_no'],
             pending=float(row['pending_amount']),
             due_on=due_on,
             days_passed=int(row['days_passed'])
         )
-
 
 
 from rest_framework import status
