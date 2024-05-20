@@ -28,7 +28,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# settings.py
+# settings.pysudo apt install python3-full
+
 
 DATABASES = {
     'default': {
@@ -36,7 +37,7 @@ DATABASES = {
         'NAME': 'be-paid_db',
         'USER': 'be_paid_user',
         'PASSWORD': 'be_paid_password',
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': '5432',
     }
 }
