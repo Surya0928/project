@@ -30,6 +30,8 @@ ALLOWED_HOSTS = []
 
 # settings.pysudo apt install python3-full
 
+STATIC_ROOT = '/path/to/your/static/files'
+
 
 DATABASES = {
     'default': {
