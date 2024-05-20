@@ -1,0 +1,7 @@
+{
+  "name": "tally_proj",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

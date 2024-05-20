@@ -1,0 +1,12 @@
+/* src/pages/Home.css */
+
+.custom-scrollbar {
+    overflow-y: scroll; /* Enable vertical scrolling */
+    scrollbar-width: none; /* Hide scrollbar on Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar on IE and Edge */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar on Chrome and Safari */
+  }
+  

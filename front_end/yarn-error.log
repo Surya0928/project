@@ -1,0 +1,85 @@
+Arguments: 
+  /usr/local/bin/node /usr/local/bin/yarn add @ionic/react@latest @ionic/react-dom@latest
+
+PATH: 
+  /home/surya/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  20.6.0
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: https://registry.npmjs.org/@ionic%2freact-dom: Not found
+      at params.callback [as _callback] (/usr/local/lib/node_modules/yarn/lib/cli.js:66145:18)
+      at self.callback (/usr/local/lib/node_modules/yarn/lib/cli.js:140890:22)
+      at Request.emit (node:events:514:28)
+      at Request.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141862:10)
+      at Request.emit (node:events:514:28)
+      at IncomingMessage.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141784:12)
+      at Object.onceWrapper (node:events:628:28)
+      at IncomingMessage.emit (node:events:526:35)
+      at endReadableNT (node:internal/streams/readable:1376:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+npm manifest: 
+  {
+    "name": "tally_proj",
+    "private": true,
+    "version": "0.0.1",
+    "type": "module",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview",
+      "test.e2e": "cypress run",
+      "test.unit": "vitest",
+      "lint": "eslint"
+    },
+    "dependencies": {
+      "@capacitor/app": "6.0.0",
+      "@capacitor/core": "6.0.0",
+      "@capacitor/haptics": "6.0.0",
+      "@capacitor/keyboard": "6.0.0",
+      "@capacitor/status-bar": "6.0.0",
+      "@ionic/react": "^8.0.0",
+      "@ionic/react-router": "^8.0.0",
+      "@types/react-router": "^5.1.20",
+      "@types/react-router-dom": "^5.3.3",
+      "ionicons": "^7.0.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "react-router": "^5.3.4",
+      "react-router-dom": "^5.3.4"
+    },
+    "devDependencies": {
+      "@capacitor/cli": "6.0.0",
+      "@testing-library/dom": ">=7.21.4",
+      "@testing-library/jest-dom": "^5.16.5",
+      "@testing-library/react": "^14.0.0",
+      "@testing-library/user-event": "^14.4.3",
+      "@types/react": "^18.0.27",
+      "@types/react-dom": "^18.0.10",
+      "@vitejs/plugin-legacy": "^5.0.0",
+      "@vitejs/plugin-react": "^4.0.1",
+      "cypress": "^13.5.0",
+      "eslint": "^8.35.0",
+      "eslint-plugin-react": "^7.32.2",
+      "jsdom": "^22.1.0",
+      "terser": "^5.4.0",
+      "typescript": "^5.1.6",
+      "vite": "^5.0.0",
+      "vitest": "^0.34.6"
+    },
+    "description": "An Ionic project"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
