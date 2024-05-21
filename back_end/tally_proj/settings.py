@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-xh_wjwem*)@tf-5%$-b%_n%@vpadam%in=fnl#g&@!jy7k^tpi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # settings.pysudo apt install python3-full
@@ -71,14 +71,10 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    'http://127.0.0.1:8100',  # Example: Ionic React development server
-    # Add other origins as needed
-]
+CORS_ALLOWED_ORIGINS = ['*']
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r'^http://localhost:\d+$',
-]
+CORS_ALLOWED_ORIGIN_REGEXES = []
+
 
 
 ROOT_URLCONF = 'tally_proj.urls'
