@@ -14,7 +14,7 @@ const CSVUploadPage: React.FC = () => {
     formData.append('csv_file', file);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/process_uploaded_csv/', {
+      const response = await fetch('http://165.232.188.250:8000/process_uploaded_csv/', {
         method: 'POST',
         body: formData
       });
