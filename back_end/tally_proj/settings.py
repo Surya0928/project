@@ -71,10 +71,14 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = ['*']
+CORS_ALLOWED_ORIGINS = [
+    'http://127.0.0.1:8100', 'http://165.232.188.250:8101', 'https//165.232.188.250:8101'   # Example: Ionic React development server
+    # Add other origins as needed
+]
 
-CORS_ALLOWED_ORIGIN_REGEXES = []
-
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^http://localhost:\d+$',
+]
 
 
 ROOT_URLCONF = 'tally_proj.urls'
