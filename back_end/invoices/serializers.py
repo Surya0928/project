@@ -9,7 +9,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'sales_up_date']
+        fields = ['invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'sales_up_date', 'phone_number', 'name']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value

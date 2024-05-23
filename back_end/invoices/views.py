@@ -30,7 +30,10 @@ def update_csv_file_format(csv_data):
         'Ref. No.': 'ref_no',
         'Party\'s Name': 'party_name',
         'Pending': 'pending_amount',
-        'Due on': 'due_date'
+        'Due on': 'due_date',
+        'Name' : 'name',
+        'Phone Number' : 'phone_number'
+
     }
     df = df.rename(columns=new_column_names)
 
