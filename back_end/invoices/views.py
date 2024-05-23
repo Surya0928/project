@@ -109,6 +109,14 @@ def import_data_from_csv(df):
                     threshold_due += float(each['pending_amount'])
                 elif int(each['days_passed']) > 90:
                     over_due += float(each['pending_amount'])
+            if each['name']:
+                name = each['name']
+            else:
+                name = ''
+            if each['phone_number']:
+                phone_number = each['phone_number']
+            else:
+                phone_number = ''            
 
         invoice = Customers.objects.using('default').update_or_create(
             account=account,
@@ -120,6 +128,8 @@ def import_data_from_csv(df):
                 'invoices': invoices,
                 'promised_date': None,
                 'promised_amount': 0.0,
+                'name' : name,
+                'phone_number' : phone_number,
             }
         )
 
