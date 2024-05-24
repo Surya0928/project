@@ -80,6 +80,10 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^http://localhost:\d+$',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8100',
+]
+
 
 ROOT_URLCONF = 'tally_proj.urls'
 

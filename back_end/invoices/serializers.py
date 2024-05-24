@@ -9,7 +9,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'sales_up_date']
+        fields = ['id','invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'promised_date', 'paid']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value
@@ -28,11 +28,18 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     invoice_details = InvoiceDetailSerializer(many=True, read_only=True)
+    comments = CommentsSerializer(many=True, read_only=True)  # Add comments field
 
     class Meta:
         model = Customers
-        fields = ('id', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due','promised_amount', 'promised_date' , 'sales_person', 'invoices', 'invoice_details' )
+        fields = ('id', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due','promised_amount', 'promised_date' , 'sales_person', 'invoices', 'invoice_details', 'comments' )
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        comments = Comments.objects.filter(invoice__account=instance.account)
+        comments_data = CommentsSerializer(comments, many=True).data
+        data['comments'] = comments_data
+        return data
 
 class CustomerUpdateSerializer(serializers.Serializer):
     account = serializers.CharField(max_length=100, allow_null=True)
@@ -51,4 +58,3 @@ class CustomerUpdateSerializer(serializers.Serializer):
         # Save the instance after all updates
         instance.save()
         return instance
-

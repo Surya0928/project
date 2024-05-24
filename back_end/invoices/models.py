@@ -12,6 +12,7 @@ class Customers(models.Model):
     promised_amount = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     promised_date = models.DateField(null=True, blank=True)
     sales_person = models.CharField(max_length=100 , null=True, blank=True)
+    premium_user = models.BooleanField(default=False)
 
 
     def __str__(self):
@@ -36,7 +37,8 @@ class Comments(models.Model):
     amount_promised = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     sales_follow_msg = models.CharField(max_length=1000, null=True, blank=True)
     sales_follow_response = models.CharField(max_length=1000, null=True, blank=True)
-    sales_up_date = models.DateField(null=True, blank=True)
+    promised_date = models.DateField(null=True, blank=True)
+    paid = models.BooleanField(default=False)
     
 
     def _str_(self):
