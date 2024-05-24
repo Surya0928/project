@@ -334,7 +334,7 @@ const Home: React.FC = () => {
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center'>
                   <div className='font-bold underline'>Promised Date: </div>
-                  <input className='h-7 w-32 border border-gray-300 text-white rounded-xl justify-center text-center' value={sales_date} onChange={(e) => handlesalesupdateChange(e.target.value)} type="date"/>
+                  <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={sales_date} onChange={(e) => handlesalesupdateChange(e.target.value)} type="date"/>
                 </div>
                 
               </div>
