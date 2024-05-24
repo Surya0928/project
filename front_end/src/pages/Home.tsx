@@ -24,7 +24,7 @@ const Home: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoices/');
+      const response = await fetch('http://165.232.188.250:8080/invoices/');
       if (response.ok) {
         const data = await response.json();
         setAccountInfo(data);
@@ -121,7 +121,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (date || Amount !== null || Name || Num || Sales_p) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/update-customer/', {
+        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (account && invoice_list) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
+        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
           
           method: 'POST',
           headers: {
