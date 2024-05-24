@@ -3,8 +3,11 @@ import HeadBar from '../components/head_bar';
 import { AccountInfo, InvoiceDetail, CommentInfo } from '../models';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil , faSquarePlus, faUser } from '@fortawesome/free-solid-svg-icons';
+import { useHistory } from 'react-router-dom';
+
 
 const Home: React.FC = () => {
+  const history = useHistory();
   const [accountInfo, setAccountInfo] = useState<AccountInfo[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [date, setdate] = useState<string | null>(null);
@@ -19,28 +22,9 @@ const Home: React.FC = () => {
   const [prev_com, setprevcom] = useState(false)
   const [comdata, setcomdata] = useState<CommentInfo[]>([]);
 
-  const fetchComments = async (acc_no: string) => {
-    try {
-      const response = await fetch(`http://165.232.188.250:8080/comments/`);
-      if (response.ok) {
-        const commentsData: CommentInfo[] = await response.json();
-        console.log(commentsData, acc_no)
-        const filteredComments = commentsData.filter(comment => comment.invoice === acc_no);
-
-        setcomdata(filteredComments);        
-        console.log(filteredComments);
-        // Update accountInfo state by mapping over it
-      } else {
-        console.error('Failed to fetch comments data');
-      }
-    } catch (error) {
-      console.error('Error fetching comments data:', error);
-    }
-  };
-
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoices/invoices/');
+      const response = await fetch('http://127.0.0.1:8000/invoices/');
       if (response.ok) {
         const data = await response.json();
         setAccountInfo(data);
@@ -56,19 +40,24 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectedAccount) {
+      const selectedAccountData = accountInfo.find((account: AccountInfo) => account.account === selectedAccount);
+      if (selectedAccountData) {
+        setcomdata(selectedAccountData.comments);
+      }
+    }
+  }, [selectedAccount, accountInfo]);
+
   const updateCommentSection = (account: string) => {
     setcomsec(!comsec);
     setcomacc(account);
     setSelectedAccount(account);
     console.log(account)
-
-    fetchComments(account)
-
   };
 
   const backcomsec = (account: string) => {
-    setcomacc('');
-    setSelectedAccount('');
+    setprevcom(false)
     setRemarks('');
     setSelectedRefNumbers([]);
     setsales_date('');
@@ -77,7 +66,9 @@ const Home: React.FC = () => {
     setdate('');
     setprom_amount(0);
     setcomsec(false);
-    fetchComments(account)
+    setcomacc('');
+    setSelectedAccount('');
+
   };
 
   const prevcomments = () => {
@@ -86,6 +77,7 @@ const Home: React.FC = () => {
 
   const handleEditClick = (account: string) => {
     setIsEdit(!Edit);
+    setprevcom(false);
     setacc(account)
   };
 
@@ -110,7 +102,17 @@ const Home: React.FC = () => {
   };
 
   const handleAccountClick = (account: string) => {
-    setSelectedAccount((prevAccount) => (prevAccount === account ? '' : account));
+    setSelectedAccount(prevAccount => prevAccount === account ? '' : account);
+    
+    // Find the account from accountInfo variable
+    const selectedAccount = accountInfo.find(info => info.account === account);
+    
+    // If the account is found, get its comments
+    if (selectedAccount) {
+      const filteredComments = selectedAccount.comments;
+      setcomdata(filteredComments);
+      // Now you can use the filteredComments array as needed
+    }
   };
 
 
@@ -119,7 +121,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (date || Amount !== null || Name || Num || Sales_p) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
+        const response = await fetch('http://127.0.0.1:8000/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -159,7 +161,8 @@ const Home: React.FC = () => {
 
   const [prom_amount, setprom_amount] = useState<number>(0.00);
   const handleprom_amountsChange = (amount: number) => {
-    setprom_amount(amount)
+    setprom_amount(amount);
+    setAmount(amount);
   };
 
   const [sales_follow_msg, setsales_follow_msg] = useState<string>('');
@@ -175,6 +178,7 @@ const Home: React.FC = () => {
   const [sales_date, setsales_date] = useState<string>('');
   const handlesalesupdateChange = (date: string) => {
     setsales_date(date);
+    setdate(date);
   };
 
   const [selectedRefNumbers, setSelectedRefNumbers] = useState<string[]>([]);
@@ -199,7 +203,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (account && invoice_list) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -213,7 +217,7 @@ const Home: React.FC = () => {
             amount_promised: prom_amount,
             sales_follow_msg: msg,
             sales_follow_response : resp,
-            sales_up_date: update,
+            promised_date: update,
             
           }),
         });
@@ -226,19 +230,24 @@ const Home: React.FC = () => {
       } catch (error) {
         console.error('Error creating comment:', error);
       }
-      setprevcom(true);
-      fetchComments(account);
+      
+      fetchData();
+      setTimeout(() => {
+        setprevcom(true);
+      }, 3000);
+      handleSubmit(account);
+
     }
   };
 
   return (
     <div className='flex w-screen justify-between  items-center'>
-      <div className='fixed left-0 pt-12 top-0 h-screen w-20 bg-blue-500 '>
+      {/* <div className='fixed left-0 pt-12 top-0 h-screen w-20 bg-blue-500 '>
         <div className='container flex flex-col space-y-4 items-center justify-center'>
           <FontAwesomeIcon icon={faUser} className='w-5 h-5 text-blue-500 bg-black' />
         </div>
-      </div>
-      <div className="flex flex-col w-screen h-full items-center pb-10">
+      </div> */}
+      <div className="flex flex-col w-screen h-full items-center pb-10 text-black">
         <div id='comment_box' className={`fixed flex w-full h-full overflow-y-auto p-24 ${comsec ? 'opacity-100' : 'invisible'}`}>
           <div className='flex flex-col overflow-y-auto bg-white w-full h-full border border-black rounded-xl p-2 space-y-4'>
             <div className='flex h-12 w-full items-center justify-between'>
@@ -263,11 +272,11 @@ const Home: React.FC = () => {
                       <th className="text-center border border-gray-400 p-2">Amount_Promised</th>
                       <th className="text-center border border-gray-400 p-2">Sales_msg</th>
                       <th className="text-center border border-gray-400 p-2">Sales_response</th>
-                      <th className="text-center border border-gray-400 p-2">Sales_date</th>
+                      <th className="text-center border border-gray-400 p-2">Promised_date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {comdata.map((comment) => (
+                    {comdata.map((comment: CommentInfo) => (
                       <tr key={comment.id}>
                         <td className="text-center border border-gray-400 p-2">{comment.date}</td>
                         <td className="text-center border border-gray-400 p-2">{comment.invoice_list}</td>
@@ -275,7 +284,7 @@ const Home: React.FC = () => {
                         <td className="text-center border border-gray-400 p-2">{comment.amount_promised}</td>
                         <td className="text-center border border-gray-400 p-2">{comment.sales_follow_msg}</td>
                         <td className="text-center border border-gray-400 p-2">{comment.sales_follow_response}</td>
-                        <td className="text-center border border-gray-400 p-2">{comment.sales_up_date}</td>
+                        <td className="text-center border border-gray-400 p-2">{comment.promised_date}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -309,23 +318,23 @@ const Home: React.FC = () => {
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center justify-between'>
                   <div className='font-bold underline'>Remarks:</div>
-                  <textarea id='remarks' onChange={handleRemarksChange} value={remarks} className='w-10/12 pl-1 border border-black'></textarea>
+                  <textarea id='remarks' onChange={handleRemarksChange} value={remarks} className='w-10/12 pl-1 bg-white border border-black'></textarea>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center justify-between'>
                   <div className='font-bold underline'>Amount_Promised:</div>
-                  <input id='amount_promised' type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='w-10/12 pl-1 border border-black'></input>
+                  <input id='amount_promised' type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='bg-white w-10/12 pl-1 border border-black'></input>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center justify-between'>
                   <div className='font-bold underline'>Sales Message:</div>
-                  <textarea id='sales_message' onChange={handlesalesmessageChange} value={sales_follow_msg} className='w-10/12 pl-1 border border-black'></textarea>
+                  <textarea id='sales_message' onChange={handlesalesmessageChange} value={sales_follow_msg} className='w-10/12 bg-white pl-1 border border-black'></textarea>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center justify-between'>
                   <div className='font-bold underline'>Sales Response:</div>
-                  <textarea id='sales_response' onChange={handlesalesresponseChange} value={sales_follow_response} className='w-10/12 pl-1 border border-black'></textarea>
+                  <textarea id='sales_response' onChange={handlesalesresponseChange} value={sales_follow_response} className='w-10/12 bg-white pl-1 border border-black'></textarea>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center'>
                   <div className='font-bold underline'>Promised Date: </div>
-                  <input className='h-7 w-32 border border-gray-300 rounded-xl justify-center text-center' value={sales_date} onChange={(e) => handlesalesupdateChange(e.target.value)} type="date"/>
+                  <input className='h-7 w-32 border border-gray-300 text-white rounded-xl justify-center text-center' value={sales_date} onChange={(e) => handlesalesupdateChange(e.target.value)} type="date"/>
                 </div>
                 
               </div>
@@ -481,6 +490,35 @@ const Home: React.FC = () => {
                             )}
                           </td>
                         </tr>
+                    </tbody>
+                  </table>
+                  <table className="table-auto w-full border-collapse border border-gray-400">
+                    <thead>
+                      <tr>
+                        <th className="text-center border border-gray-400 p-2">Date</th>
+                        <th className="text-center border border-gray-400 p-2">Invoices</th>
+                        <th className="text-center border border-gray-400 p-2">Remarks</th>
+                        <th className="text-center border border-gray-400 p-2">Amount_Promised</th>
+                        <th className="text-center border border-gray-400 p-2">Sales_msg</th>
+                        <th className="text-center border border-gray-400 p-2">Sales_response</th>
+                        <th className="text-center border border-gray-400 p-2">Promised_date</th>
+                        <th className="text-center border border-gray-400 p-2">Paid</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {comdata.slice(-2).reverse().map((comment: CommentInfo) => (
+                        <tr key={comment.id}>
+                          <td className="text-center border border-gray-400 p-2">{comment.date}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.invoice_list}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.remarks}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.amount_promised}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.sales_follow_msg}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.sales_follow_response}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.promised_date}</td>
+                          <td className="text-center border border-gray-400 p-2"><input type="checkbox" className='w-6 h-6' id={comment.invoice} checked={comment.paid}/></td>
+
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
 

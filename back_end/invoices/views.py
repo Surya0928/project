@@ -7,6 +7,35 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceSerializer
 
 
+from django.db.models import OuterRef, Subquery
+from django.http import JsonResponse
+from .models import Customers, Comments
+from .serializers import InvoiceSerializer
+
+def get_all_invoices(request):
+    if request.method == 'GET':
+        # Subquery to get the promised_date of the last comment for each customer
+        last_comment = Comments.objects.filter(invoice=OuterRef('pk')).order_by('-date')
+
+        # Annotate customers with the promised_date of the last comment
+        customers = Customers.objects.annotate(
+            last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
+            last_paid=Subquery(last_comment.values('paid')[:1])
+        )
+        # Order customers by the annotated promised_date
+        ordered_customers = customers.order_by('premium_user', 'last_paid','last_promised_date', 'id')
+
+        # Serialize the queryset
+        serializer = InvoiceSerializer(ordered_customers, many=True)
+        
+        # Return the ordered customers as JSON response
+        return JsonResponse(serializer.data, safe=False)
+    else:
+        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
+        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
+
+
+
 import csv
 from io import TextIOWrapper, BytesIO
 from datetime import datetime
@@ -89,36 +118,67 @@ def process_uploaded_csv(request):
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
+    
+
+@csrf_exempt
+@require_POST
+def process_update_csv(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+
+        try:
+            # Step 1: Update CSV data format
+            updated_csv_data = update_csv_file_format(csv_file.read())
+
+            # Step 2: Convert updated CSV data back to CSV file and process
+            df = pd.read_csv(BytesIO(updated_csv_data))
+
+            # Step 4: Import data from the updated CSV DataFrame into PostgreSQL
+            import_data_from_csv(df)
+
+            return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
+
+import pandas as pd
+from django.db.models import F
 
 def import_data_from_csv(df):
-    unique_list = []
-    for _, row in df.iterrows():
-        if row['party_name'] not in unique_list:
-            unique_list.append(row['party_name'])
+    unique_list = df['party_name'].unique().tolist()
 
     for company in unique_list:
         account = company
+        name = ''
+        phone_number = ''
+        
         invoices, total_due, optimal_due, threshold_due, over_due = 0.0, 0.0, 0.0, 0.0, 0.0
+
+        # Initialize flags to check for non-empty values
+        name_found = False
+        phone_number_found = False
+
         for _, each in df.iterrows():
             if each['party_name'] == company:
                 invoices += 1
                 total_due += float(each['pending_amount'])
                 if int(each['days_passed']) <= 60:
                     optimal_due += float(each['pending_amount'])
-                elif int(each['days_passed']) > 60 and int(each['days_passed']) <= 90:
+                elif 60 < int(each['days_passed']) <= 90:
                     threshold_due += float(each['pending_amount'])
                 elif int(each['days_passed']) > 90:
                     over_due += float(each['pending_amount'])
-            if each['name']:
-                name = each['name']
-            else:
-                name = ''
-            if each['phone_number']:
-                phone_number = each['phone_number']
-            else:
-                phone_number = ''            
 
-        invoice = Customers.objects.using('default').update_or_create(
+                if not name_found and pd.notna(each['name']):
+                    name = each['name']
+                    name_found = True
+
+                if not phone_number_found and pd.notna(each['phone_number']):
+                    phone_number = each['phone_number']
+                    phone_number_found = True
+        print(account, 1, name, phone_number)
+        invoice, created = Customers.objects.using('default').update_or_create(
             account=account,
             defaults={
                 'optimal_due': round(optimal_due),
@@ -128,8 +188,8 @@ def import_data_from_csv(df):
                 'invoices': invoices,
                 'promised_date': None,
                 'promised_amount': 0.0,
-                'name' : name,
-                'phone_number' : phone_number,
+                'name': name,
+                'phone_number': phone_number,
             }
         )
 
@@ -145,7 +205,7 @@ def import_data_from_csv(df):
         except ValueError:
             continue
 
-        Invoice.objects.using('default').create(
+        Invoice.objects.using('default').update_or_create(
             invoice=customer,
             date=date,
             ref_no=row['ref_no'],

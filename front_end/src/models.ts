@@ -7,8 +7,9 @@ export interface CommentInfo {
   remarks: string;
   sales_follow_msg: string;
   sales_follow_response: string;
-  sales_up_date: string;
+  promised_date: string;
   amount_promised: number;
+  paid: boolean;
 }
 
 
@@ -34,8 +35,10 @@ export interface InvoiceDetail {
     total_due: number;
     invoices: number;
     invoice_details: InvoiceDetail[];
+    comments: CommentInfo[];
     promised_amount: number;
     promised_date: string;
     sales_person: string;
+    premium_user: boolean;
   }
   

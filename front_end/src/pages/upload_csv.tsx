@@ -1,6 +1,9 @@
 import React from 'react';
+import { useHistory } from 'react-router-dom';
+
 
 const CSVUploadPage: React.FC = () => {
+  const history = useHistory();
   const handleUpload = async () => {
     const csvFileInput = document.getElementById('csvFileInput') as HTMLInputElement;
     const file = csvFileInput.files?.[0];
@@ -14,7 +17,7 @@ const CSVUploadPage: React.FC = () => {
     formData.append('csv_file', file);
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_uploaded_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_uploaded_csv/', {
         method: 'POST',
         body: formData
       });
@@ -23,6 +26,7 @@ const CSVUploadPage: React.FC = () => {
         const responseData = await response.json();
         console.log(responseData);
         alert('CSV file uploaded successfully!');
+        history.push('/home');
       } else {
         console.error('Failed to upload CSV:', response.statusText);
         alert('Failed to upload CSV. Please try again.');
@@ -33,17 +37,58 @@ const CSVUploadPage: React.FC = () => {
     }
   };
 
+  const handleUpdate = async () => {
+    const csvFileInput = document.getElementById('csvFileInput') as HTMLInputElement;
+    const file = csvFileInput.files?.[0];
+
+    if (!file) {
+      alert('Please select a CSV file to update');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('csv_file', file);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/process_update_csv/', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log(responseData);
+        alert('CSV file updated successfully!');
+        history.push('/home');
+      } else {
+        console.error('Failed to upload CSV:', response.statusText);
+        alert('Failed to update CSV. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error uploading CSV:', error);
+      alert('Error updating CSV. Please try again.');
+    }
+  };
+
   return (
-    <div className="container mx-auto mt-8">
-      <h1 className="text-2xl font-bold mb-4">Upload CSV File</h1>
+    <div className="flex flex-col space-y-10 w-screen h-screen justify-center items-center">
+      <h1 className="text-5xl font-bold mb-4">Upload / Update CSV File</h1>
       <input
         type="file"
         id="csvFileInput"
         accept=".csv"
         className="border border-gray-300 rounded p-2 mb-4"
       />
-      <button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-        Upload CSV
+      <div className='flex w-auto space-x-2'>
+        <button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
+          Create
+        </button>
+        <button onClick={handleUpdate} className="bg-green-500 hover:bg-green-700 text-white font-bold w-32 py-2 px-4 rounded">
+          Update
+        </button>
+      </div>
+      <button onClick={() => {history.push('/home')}} className="bg-red-500 hover:bg-red-700 text-white font-bold w-52 py-2 px-4 rounded">
+        Go To Home
       </button>
     </div>
   );

@@ -3,4 +3,10 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Add custom styles or additional imports below */
+@media (prefers-color-scheme: dark) {
+    /* Add any additional styles for dark mode */
+    .text-black {
+      color: #fff;
+    }
+  
+}
