@@ -22,6 +22,7 @@ const Home: React.FC = () => {
   const [prev_com, setprevcom] = useState(false)
   const [comdata, setcomdata] = useState<CommentInfo[]>([]);
 
+
   const fetchData = async () => {
     try {
       const response = await fetch('http://165.232.188.250:8080/invoices/');
@@ -240,6 +241,33 @@ const Home: React.FC = () => {
     }
   };
 
+  const handlePaidStatusChange = async (comment: CommentInfo) => {
+    try {
+      const response = await fetch('http://165.232.188.250:8080/comment_paid/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comment_id: comment.id,
+          paid_status: !comment.paid,
+        }),
+        
+      });
+      console.log(comment.id, !comment.paid)
+      if (response.ok) {
+        console.log('Paid status updated successfully');
+        // Refetch data after successful API call
+        fetchData();
+      } else {
+        console.error('Failed to update paid status');
+      }
+    } catch (error) {
+      console.error('Error updating paid status:', error);
+    }
+  };
+
+  
   return (
     <div className='flex w-screen justify-between  items-center'>
       {/* <div className='fixed left-0 pt-12 top-0 h-screen w-20 bg-blue-500 '>
@@ -351,6 +379,7 @@ const Home: React.FC = () => {
                 <div>(Phone Number)</div>
               </div>
               <div className="flex h-auto w-28 items-center justify-center">Total Due</div>
+              <div className="flex h-auto w-28 items-center justify-center">Over Due</div>
               <div className="flex h-auto w-28 items-center justify-center">Invoices</div>
               <div className="flex h-auto w-28 items-center justify-center">Prom Amount</div>
               <div className="flex h-auto w-32 items-center justify-center">Prom Date</div>
@@ -392,6 +421,7 @@ const Home: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.total_due}</div>
+                  <div className="flex h-auto w-28 justify-center items-center">{account.over_due}</div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.invoices}</div>
                   <div className="flex h-auto w-28 justify-center items-center">
                     {Edit && acc===account.account ? (
@@ -515,7 +545,13 @@ const Home: React.FC = () => {
                           <td className="text-center border border-gray-400 p-2">{comment.sales_follow_msg}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.sales_follow_response}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.promised_date}</td>
-                          <td className="text-center border border-gray-400 p-2"><input type="checkbox" className='w-6 h-6' id={comment.invoice} checked={comment.paid}/></td>
+                          <td className="text-center border border-gray-400 p-2">
+                          <input
+                            type="checkbox"
+                            checked={comment.paid}
+                            onChange={() => handlePaidStatusChange(comment)}
+                          />
+                          </td>
 
                         </tr>
                       ))}
