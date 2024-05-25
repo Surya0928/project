@@ -25,7 +25,7 @@ const Home: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:80800/invoices/');
+      const response = await fetch('http://165.232.188.250:8080/invoices/');
       if (response.ok) {
         const data = await response.json();
         setAccountInfo(data);
@@ -122,7 +122,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (date || Amount !== null || Name || Num || Sales_p) {
       try {
-        const response = await fetch('http://165.232.188.250:80800/update-customer/', {
+        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ const Home: React.FC = () => {
     // Add more logs to inspect the form elements and values
     if (account && invoice_list) {
       try {
-        const response = await fetch('http://165.232.188.250:80800/create-comment/', {
+        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -241,7 +241,7 @@ const Home: React.FC = () => {
 
   const handlePaidStatusChange = async (comment: CommentInfo) => {
     try {
-      const response = await fetch('http://165.232.188.250:80800/comment_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/comment_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
