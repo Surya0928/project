@@ -45,7 +45,7 @@ def get_all_invoices(request):
             ),
             last_promised_date_order=Case(
                 When(last_promised_date__lte=current_date, then=Value(0)),
-                When(last_promised_date__isnull=True, then=Value(1)),
+                When(last_promised_date=None, then=Value(1)),
                 When(last_promised_date__gt=current_date, then=Value(2)),
                 output_field=IntegerField(),
             )
