@@ -10,4 +10,5 @@ urlpatterns = [
     path('update-customer/', views.CustomerUpdateAPIView.as_view(), name='update_customer'),
     path('create-comment/', views.create_comment, name='create-comment'),
     path('comments/', views.get_all_comments, name='get_all_comments'),
+    path('comment_paid/', views.update_comment_paid_status, name='update_comment_paid_status'),
 ]
