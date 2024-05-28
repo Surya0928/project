@@ -10,18 +10,25 @@ export interface CommentInfo {
   promised_date: string;
   amount_promised: number;
   paid: boolean;
+  paid_date: string;
 }
 
 
 export interface InvoiceDetail {
-    id: number;
-    invoice: number;
-    date: string;
-    ref_no: string;
-    pending: number;
-    due_on: string;
-    days_passed: number;
-  }
+  id: number;
+  invoice: {
+    account: string;
+    phone_number: string;
+  };
+  date: string;
+  ref_no: string;
+  pending: number;
+  due_on: string;
+  days_passed: number;
+  paid: boolean;
+  paid_date: string;
+}
+
   
   
   export interface AccountInfo {

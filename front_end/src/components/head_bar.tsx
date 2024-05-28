@@ -9,7 +9,7 @@ const HeadBar: React.FC = () => {
     history.push('/')
   };
   return (
-    <div className="absolute top-0 w-screen bg-gray-300 py-4 px-6 flex justify-between items-center">
+    <div className="fixed top-0 w-screen bg-gray-300 py-4 px-6 flex border border-gray-500 justify-between items-center">
       <div className="text-4xl font-bold flex-grow text-center">Be Paid</div>
       <FontAwesomeIcon
         icon={faCloudArrowUp}

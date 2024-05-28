@@ -25,6 +25,8 @@ class Invoice(models.Model):
     pending = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     due_on = models.DateField(null=True, blank=True)
     days_passed = models.IntegerField(default=0)
+    paid = models.BooleanField(default=False)
+    paid_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.invoice}"
@@ -39,6 +41,8 @@ class Comments(models.Model):
     sales_follow_response = models.CharField(max_length=1000, null=True, blank=True)
     promised_date = models.DateField(null=True, blank=True)
     paid = models.BooleanField(default=False)
+    paid_date = models.DateField(null=True, blank=True)
+
     
 
     def _str_(self):

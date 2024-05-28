@@ -3,11 +3,11 @@ import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
 import { AccountInfo, InvoiceDetail, CommentInfo } from '../models';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil , faSquarePlus, faHome, faClock, faList, faSquareCheck } from '@fortawesome/free-solid-svg-icons';
+import { faPencil , faSquarePlus } from '@fortawesome/free-solid-svg-icons';
 import { useHistory } from 'react-router-dom';
 
 
-const Home: React.FC = () => {
+const Pending: React.FC = () => {
   const history = useHistory();
   const [accountInfo, setAccountInfo] = useState<AccountInfo[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
@@ -36,7 +36,7 @@ const Home: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoices/');
+      const response = await fetch('http://165.232.188.250:8080/pending_invoices/');
       if (response.ok) {
         const data = await response.json();
         setAccountInfo(data);
@@ -319,7 +319,7 @@ const Home: React.FC = () => {
   
   return (
     <div className='flex w-screen justify-between  items-center'>
-      <Sidebar current_page='Home' />
+      <Sidebar current_page='Pending' />
       <HeadBar />
       <div className="flex flex-col w-screen h-full items-center pb-10 text-black space-y-8">
         <div id='comment_box' className={`fixed flex w-full h-full overflow-y-auto p-24 ${comsec ? 'opacity-100' : 'invisible'}`}>
@@ -638,4 +638,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home;
+export default Pending;
