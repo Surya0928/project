@@ -9,7 +9,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['id','invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'promised_date', 'paid']
+        fields = ['id','invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'sales_follow_msg', 'sales_follow_response', 'promised_date', 'paid', 'paid_date']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value
@@ -20,10 +20,17 @@ class CommentsSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class CustomersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customers
+        fields = ['account', 'phone_number']
+
 class InvoiceDetailSerializer(serializers.ModelSerializer):
+    invoice = CustomersSerializer(read_only=True)
+
     class Meta:
         model = Invoice
-        fields = ('id','invoice', 'date', 'ref_no', 'pending', 'due_on', 'days_passed')
+        fields = ['id', 'invoice', 'date', 'ref_no', 'pending', 'due_on', 'days_passed', 'paid', 'paid_date']
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
