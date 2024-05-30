@@ -650,26 +650,9 @@ const Home: React.FC = () => {
                   <div className="flex h-auto w-28 justify-center items-center">{account.over_due}</div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.invoices}</div>
                   <div className="flex h-auto w-28 justify-center items-center">
-                    {Edit && acc===account.account ? (
-                      <input
-                        className='h-7 w-28 border border-gray-500 bg-gray-300 rounded-xl justify-center text-center'
-                        type="number"
-                        name="promisedAmount"
-                        onChange={(e) => updatePromisedAmount(Number(e.target.value))}
-                        placeholder='Amount'
-                      />
-                    ) : (
-                      account.promised_amount
-                    )}
+                      {account.promised_amount}
                   </div>
                   <div className='flex h-auto w-32 items-center justify-center'>
-                    {Edit && acc===account.account ? (
-                      <input
-                        className='h-7 border border-gray-500 bg-gray-300 rounded-xl justify-center text-center'
-                        type="date"
-                        onChange={(e) => updatePromisedDate(e.target.value)}
-                      />
-                    ) : (
                       <div>                          
                         {account.promised_date ? (
                           <div>{account.promised_date}</div>
@@ -677,7 +660,6 @@ const Home: React.FC = () => {
                           <div>00-00-0000</div>
                         )}
                       </div>
-                    )}
                   </div>
                   <div className='w-32 flex justify-center items-center'>
                     {Edit && acc===account.account ? (
