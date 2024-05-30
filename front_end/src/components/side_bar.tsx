@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
   const create_sales = async () => {
     if (Name && Address && Phone && Email) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/create-sales/', {
+        const response = await fetch('http://165.232.188.250:8080/create-sales/', {
           
           method: 'POST',
           headers: {

@@ -52,7 +52,7 @@ const To_DO: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/to_do_invoices/', {
+      const response = await fetch('http://165.232.188.250:8080/to_do_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ const To_DO: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ const To_DO: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://127.0.0.1:8000/comment_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/comment_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
