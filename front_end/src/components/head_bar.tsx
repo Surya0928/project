@@ -6,7 +6,7 @@ import { useHistory } from 'react-router-dom';
 const HeadBar: React.FC = () => {
   const history = useHistory();
   const upload_csv = () => {
-    history.push('/')
+    history.push('/csv_add')
   };
   return (
     <div className="fixed top-0 w-screen bg-gray-300 py-4 px-6 flex border border-gray-500 justify-between items-center">

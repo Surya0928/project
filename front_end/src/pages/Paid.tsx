@@ -5,14 +5,25 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faClock, faList, faSquareCheck } from '@fortawesome/free-solid-svg-icons';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
+import { AppProvider, useAppContext } from '../components/app_variables';
 
 const Paid: React.FC = () => {
   const history = useHistory();
   const [comdata, setcomdata] = useState<InvoiceDetail[]>([]);
+  const {user_id, username} = useAppContext();
   
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/paid_invoices/');
+      const response = await fetch('http://127.0.0.1:8000/paid_invoices/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user_id
+        }),
+        
+      })
       if (response.ok) {
         const data = await response.json();
         setcomdata(data);
@@ -25,7 +36,11 @@ const Paid: React.FC = () => {
   };
 
   useEffect(() => {
+    {!user_id && (
+      history.push('/')
+    )}
     fetchData();
+    
   }, []);
 
   const handlePaidStatusChange = async (invoice: InvoiceDetail) => {
@@ -36,7 +51,7 @@ const Paid: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

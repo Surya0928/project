@@ -1,21 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
-import { AccountInfo, InvoiceDetail, CommentInfo } from '../models';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil , faSquarePlus, faHome, faClock, faList, faSquareCheck } from '@fortawesome/free-solid-svg-icons';
+import { AccountInfo, InvoiceDetail, CommentInfo, SalesPerson } from '../models';
 import { useHistory } from 'react-router-dom';
+import { AppProvider, useAppContext } from '../components/app_variables';
 
 
-const To_Do: React.FC = () => {
+const To_DO: React.FC = () => {
   const history = useHistory();
+  const {user_id, username} =useAppContext();
   const [accountInfo, setAccountInfo] = useState<AccountInfo[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [Edit, setIsEdit] = useState(false);
   const [acc, setacc] = useState<string | null>(null);
   const [comdata, setcomdata] = useState<CommentInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
- 
+  const [sales, setsales] = useState<string[]>([]);
+  
+  const [salesPersonMapping, setSalesPersonMapping] = useState<{ [key: number]: string }>({});
+
+  const [invoiceSalesPersons, setInvoiceSalesPersons] = useState<{ [key: string]: string }>({});
+
+  const handleSalesPersonChange = (event: React.ChangeEvent<HTMLSelectElement>, invoiceRefNo: string) => {
+    console.log(invoiceSalesPersons)
+    const { value } = event.target;
+    // If the deselection option is selected (value is empty string), remove the salesperson for the invoice
+    if (value === '') {
+      setInvoiceSalesPersons(prevState => {
+        const updatedState = { ...prevState };
+        delete updatedState[invoiceRefNo];
+        return updatedState;
+      });
+    } else {
+      // Otherwise, update the salesperson for the invoice
+      setInvoiceSalesPersons(prevState => ({
+        ...prevState,
+        [invoiceRefNo]: value
+      }));
+    }
+  };
+  
   const filteredAccounts = searchQuery
     ? accountInfo.filter((account) =>
         account.account.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -28,10 +52,27 @@ const To_Do: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/to_do_invoices/');
+      const response = await fetch('http://127.0.0.1:8000/to_do_invoices/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user_id
+        }),
+        
+      })
       if (response.ok) {
         const data = await response.json();
-        setAccountInfo(data);
+        setAccountInfo(data['customer_data']);
+        setsales(data['sales'])
+        const salesPersonmapping = data['sales_data'].reduce((acc: { [key: number]: string }, person: SalesPerson) => {
+          acc[person.id] = person.name;
+          return acc;
+        }, {});
+        setSalesPersonMapping(salesPersonmapping);
+        
+  
       } else {
         console.error('Failed to fetch data');
       }
@@ -41,7 +82,11 @@ const To_Do: React.FC = () => {
   };
 
   useEffect(() => {
+    {!user_id && (
+      history.push('/')
+    )}
     fetchData();
+    
   }, []);
 
   useEffect(() => {
@@ -53,7 +98,9 @@ const To_Do: React.FC = () => {
     }
   }, [selectedAccount, accountInfo]);
 
+
   const handleAccountClick = (account: string) => {
+    console.log(salesPersonMapping)
     setSelectedAccount(prevAccount => prevAccount === account ? '' : account);
     
     // Find the account from accountInfo variable
@@ -67,6 +114,8 @@ const To_Do: React.FC = () => {
     }
   };
 
+
+
   const handleInvoicePaidStatusChange = async (invoice: InvoiceDetail) => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
@@ -75,12 +124,13 @@ const To_Do: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          
           invoice_id: invoice.id,
           paid_status: !invoice.paid,
           paid_date: invoice.paid ? null : todayDate,
@@ -108,7 +158,7 @@ const To_Do: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/comment_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/comment_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +188,7 @@ const To_Do: React.FC = () => {
     <div className='flex w-screen justify-between  items-center'>
       <Sidebar current_page='To_Do' />
       <HeadBar />
-      <div className="flex flex-col w-screen h-full items-center pb-10 text-black space-y-8">
+      <div className="flex flex-col w-screen h-full items-center pb-10 text-black space-y-8"> 
         <div className='pt-20 w-auto'>
         <input
           type="text"
@@ -190,8 +240,8 @@ const To_Do: React.FC = () => {
                   <div className="flex h-auto w-28 justify-center items-center">
                       {account.promised_amount}
                   </div>
-                  <div className='flex h-auto w-32 items-center justify-center'>
-                          <div>{account.promised_date}</div>
+                  <div className='flex h-auto w-32 items-center justify-center'>                    
+                        {account.promised_date}
                   </div>
                 </div>
                 <div className='container w-full border border-gray-500'></div>
@@ -208,6 +258,7 @@ const To_Do: React.FC = () => {
                         <th className="text-center border border-gray-400 p-2">Pending Amount</th>
                         <th className="text-center border border-gray-400 p-2">Days Passed</th>
                         <th className="text-center border border-gray-400 p-2">Paid</th>
+                        <th className="text-center border border-gray-400 p-2">Sales_Person</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -225,6 +276,20 @@ const To_Do: React.FC = () => {
                             onChange={() => handleInvoicePaidStatusChange(invoice)}
                           />
                           </td>
+                          <td className="text-center border border-gray-400 p-2">
+                            {Edit && acc===account.account ? (
+                              <select value={invoiceSalesPersons[invoice.ref_no] || ''} onChange={(e) => handleSalesPersonChange(e, invoice.ref_no)} className='border border-gray-600 bg-gray-300'>
+                                <option value="">{invoice.sales_person ? (salesPersonMapping[invoice.sales_person]) : ('Select Sales Person')}</option> {/* Deselection option */}
+                                {sales.map((person, index) => (
+                                  <option key={index} value={person}>{person}</option>
+                                ))}
+                              </select>
+
+                              ) : (
+                                salesPersonMapping[invoice.sales_person] || ''
+                            )}
+                          </td>
+                          
                         </tr>
                       ))}
                     </tbody>
@@ -235,7 +300,6 @@ const To_Do: React.FC = () => {
                         <th className="text-center border border-gray-400 p-2">Optimal Due</th>
                         <th className="text-center border border-gray-400 p-2">Threshold Due</th>
                         <th className="text-center border border-gray-400 p-2">OverDue</th>
-                        <th className="text-center border border-gray-400 p-2">Sales_Person</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -243,9 +307,6 @@ const To_Do: React.FC = () => {
                           <td className="text-center border border-gray-400 p-2">{account.optimal_due}</td>
                           <td className="text-center border border-gray-400 p-2">{account.threshold_due}</td>
                           <td className="text-center border border-gray-400 p-2">{account.over_due}</td>
-                          <td className="text-center border border-gray-400 p-2">
-                            {account.sales_person}
-                          </td>
                         </tr>
                     </tbody>
                   </table>
@@ -256,8 +317,7 @@ const To_Do: React.FC = () => {
                         <th className="text-center border border-gray-400 p-2">Invoices</th>
                         <th className="text-center border border-gray-400 p-2">Remarks</th>
                         <th className="text-center border border-gray-400 p-2">Amount_Promised</th>
-                        <th className="text-center border border-gray-400 p-2">Sales_msg</th>
-                        <th className="text-center border border-gray-400 p-2">Sales_response</th>
+                        <th className="text-center border border-gray-400 p-2">Follow_up_date</th>
                         <th className="text-center border border-gray-400 p-2">Promised_date</th>
                         <th className="text-center border border-gray-400 p-2">Paid</th>
                         
@@ -270,8 +330,7 @@ const To_Do: React.FC = () => {
                           <td className="text-center border border-gray-400 p-2">{comment.invoice_list}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.remarks}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.amount_promised}</td>
-                          <td className="text-center border border-gray-400 p-2">{comment.sales_follow_msg}</td>
-                          <td className="text-center border border-gray-400 p-2">{comment.sales_follow_response}</td>
+                          <td className="text-center border border-gray-400 p-2">{comment.follow_up_date}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.promised_date}</td>
                           <td className="text-center border border-gray-400 p-2">
                           <input
@@ -296,4 +355,4 @@ const To_Do: React.FC = () => {
   );
 };
 
-export default To_Do;
+export default To_DO;

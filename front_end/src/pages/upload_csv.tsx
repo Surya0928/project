@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-
+import { AppProvider, useAppContext } from '../components/app_variables';
 
 const CSVUploadPage: React.FC = () => {
   const history = useHistory();
+  const {user_id, username} = useAppContext();
+
   const handleUpload = async () => {
     const csvFileInput = document.getElementById('csvFileInput') as HTMLInputElement;
     const file = csvFileInput.files?.[0];
@@ -15,9 +17,12 @@ const CSVUploadPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('csv_file', file);
+    {user_id && (
+    formData.append('user_id', user_id.toString())
+    )}
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_uploaded_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_uploaded_csv/', {
         method: 'POST',
         body: formData
       });
@@ -50,7 +55,7 @@ const CSVUploadPage: React.FC = () => {
     formData.append('csv_file', file);
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_update_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_update_csv/', {
         method: 'POST',
         body: formData
       });
