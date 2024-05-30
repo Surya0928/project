@@ -464,8 +464,8 @@ def get_to_do_invoices(request):
             ).filter(user = user_id)
 
             customers = customers.filter(
-                last_promised_date__in=[yesterday, current_date, tomorrow],
-                follow_up_date__in=[yesterday, current_date, tomorrow]
+                Q(promised_date__in=[yesterday, current_date, tomorrow]) |
+                    Q(follow_up_date__in=[yesterday, current_date, tomorrow])
             ).order_by('last_promised_date')
 
 
@@ -529,7 +529,7 @@ def get_pending_invoices(request):
             ).filter(user = user_id)
 
             # Filter customers where there are no comments or last_promised_date is less than yesterday
-            customers = customers.filter(Q(last_promised_date__lt=yesterday) | Q(last_promised_date__isnull=True) | Q(follow_up_date__lt=yesterday))
+            customers = customers.filter((Q(last_promised_date__lt=yesterday) | Q(last_promised_date__isnull=True)) & (Q(follow_up_date__lt=yesterday) | Q(follow_up_date__isnull=True)))
 
             # Order the customers with last_promised_date < yesterday at the top and others at the bottom
             customers = customers.annotate(is_old=Case(When(last_promised_date__lt=yesterday, then=Value(1)), default=Value(0), output_field=IntegerField())).order_by('-is_old', '-over_due')
