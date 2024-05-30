@@ -10,18 +10,26 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import OuterRef, Subquery, Case, When, Value, IntegerField
-from .models import Customers, Invoice, Comments
-from .serializers import InvoiceSerializer
+from .models import Customers, Invoice, Comments, Sales_Persons
+from .serializers import InvoiceSerializer, SalesPersonsSerializer
 from rest_framework.decorators import api_view
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_all_invoices(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        print(user_id)
+
+
+
         current_date = timezone.now().date()
 
-        # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(invoice=OuterRef('pk')).order_by('-id')
 
+        # Subquery to get the promised_date of the last comment for each customer
+        last_comment = Comments.objects.filter(user_id = user_id ,invoice=OuterRef('pk')).order_by('-id')
+
+        customers = Customers.objects.filter(user_id = user_id)
         # Annotate customers with the promised_date of the last comment
         customers = Customers.objects.annotate(
             last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
@@ -39,21 +47,33 @@ def get_all_invoices(request):
 
         # Order the customers
         customers = customers.order_by('premium_user_order', '-over_due', 'last_promised_date', 'id')
+        lis = []
+        sales = Sales_Persons.objects
+        data = SalesPersonsSerializer(sales, many=True).data
+        for sale in data:
+            lis.append(sale['name'])
 
         # Serialize the queryset
         customer_data = []
         for customer in customers:
             # Filter unpaid invoices
-            unpaid_invoices = Invoice.objects.filter(invoice=customer)
+            invoices = Invoice.objects.filter(user_id = user_id , invoice=customer).order_by('date', 'id')
+            # for each in invoices:
+            #     sales_person = Sales_Persons.objects.filter(name = each.sales_person)
+            #     if len(sales_person) > 0:
+            #         each.sales_person = sales_person[0].name
             customer_dict = InvoiceSerializer(customer).data
-            customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
+            
+            customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
+
             customer_data.append(customer_dict)
 
         # Return the ordered customers as JSON response
-        return JsonResponse(customer_data, safe=False)
+        return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
-        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+    
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -146,49 +166,52 @@ from django.db import transaction
 from invoices.models import Customers, Invoice
 
 def update_csv_file_format(csv_data):
-    # Convert CSV data (string) to a pandas DataFrame
-    df = pd.read_csv(BytesIO(csv_data))
+    try:
+        # Convert CSV data (bytes) to a pandas DataFrame
+        df = pd.read_csv(BytesIO(csv_data))
 
-    # Store original 'Due on' column before converting to dateti""me
-    original_due_on = df['Due on']
+        # Store original 'Due on' column before converting to datetime
+        original_due_on = df['Due on']
 
-    # Rename columns to desired names
-    new_column_names = {
-        'Date': 'invoice_date',
-        'Ref. No.': 'ref_no',
-        'Party\'s Name': 'party_name',
-        'Pending': 'pending_amount',
-        'Due on': 'due_date',
-        'Name' : 'name',
-        'Phone Number' : 'phone_number'
+        # Rename columns to desired names
+        new_column_names = {
+            'Date': 'invoice_date',
+            'Ref. No.': 'ref_no',
+            'Party\'s Name': 'party_name',
+            'Pending': 'pending_amount',
+            'Due on': 'due_date',
+            'Name': 'name',
+            'Phone Number': 'phone_number'
+        }
+        df = df.rename(columns=new_column_names)
 
-    }
-    df = df.rename(columns=new_column_names)
+        # Convert 'due_date' column to datetime to calculate days passed
+        df['due_date'] = pd.to_datetime(df['due_date'], format='%d-%b-%y', errors='coerce')
 
-    # Convert 'due_date' column to datetime to calculate days passed
-    df['due_date'] = pd.to_datetime(df['due_date'], format='%d-%b-%y', errors='coerce')
+        # Filter out rows with invalid datetime values (e.g., 'NaT' values)
+        df = df.dropna(subset=['due_date'])
 
-    # Filter out rows with invalid datetime values (e.g., 'NaT' values)
-    df = df.dropna(subset=['due_date'])
+        # Convert today's date to pandas Timestamp (to match 'due_date' datatype)
+        today = pd.Timestamp(datetime.today().date())
 
-    # Convert today's date to pandas Timestamp (to match 'due_date' datatype)
-    today = pd.Timestamp(datetime.today().date())
+        # Calculate number of days passed from due date to today
+        df['days_passed'] = (today - df['due_date']).dt.days
 
-    # Calculate number of days passed from due date to today
-    df['days_passed'] = (today - df['due_date']).dt.days
+        # Revert 'due_date' column back to original format
+        df['due_date'] = original_due_on
 
-    # Revert 'due_date' column back to original format
-    df['due_date'] = original_due_on
+        # Remove the 'days_passed' column (if present)
+        if 'Overdue' in df.columns:
+            df.drop('Overdue', axis=1, inplace=True)
 
-    # Remove the 'days_passed' column (if present)
-    if 'Overdue' in df.columns:
-        df.drop('Overdue', axis=1, inplace=True)
         # Convert DataFrame back to CSV data (as bytes)
-    updated_csv_data = df.to_csv(index=False).encode('utf-8')
-    # print(updated_csv_data)
-    
-    print("CSV data updated successfully")
-    return updated_csv_data
+        updated_csv_data = df.to_csv(index=False).encode('utf-8')
+
+        print("CSV data updated successfully")
+        return updated_csv_data
+    except Exception as e:
+        print("Error updating CSV data:", e)
+        raise e  # Reraise the exception to propagate it to the caller
 
 @csrf_exempt
 @require_POST
@@ -197,34 +220,39 @@ def update_csv_file_format(csv_data):
 def process_uploaded_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         csv_file = request.FILES['csv_file']
+        
+        # Retrieve user_id from request
+        user_id = int(request.POST.get('user_id'))
+
 
         try:
-            # Step 1: Update CSV data format
-            updated_csv_data = update_csv_file_format(csv_file.read())
+            # Step 1: Read the content of the CSV file
+            csv_data = csv_file.read()
 
-            # Step 2: Convert updated CSV data back to CSV file and process
+            # Step 2: Update CSV data format
+            updated_csv_data = update_csv_file_format(csv_data)
+
+            # Step 3: Convert updated CSV data back to CSV file and process
             df = pd.read_csv(BytesIO(updated_csv_data))
 
-            # Step 3: Delete existing Customers and Invoice instances from PostgreSQL
-            Customers.objects.using('default').all().delete()
-            Invoice.objects.using('default').all().delete()
+            # Step 4: Delete existing Customers and Invoice instances from PostgreSQL
+            Customers.objects.using('default').filter(user=user_id).delete()
+            Invoice.objects.using('default').filter(user=user_id).delete()
 
-            # Step 4: Import data from the updated CSV DataFrame into PostgreSQL
-            import_data_from_csv(df)
+            # Step 5: Import data from the updated CSV DataFrame into PostgreSQL
+            import_data_from_csv(df, user_id)
 
             return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
-    
-
 @csrf_exempt
 @require_POST
 def process_update_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         csv_file = request.FILES['csv_file']
-
+        user_id = int(request.POST.get('user_id'))
         try:
             # Step 1: Update CSV data format
             updated_csv_data = update_csv_file_format(csv_file.read())
@@ -233,7 +261,7 @@ def process_update_csv(request):
             df = pd.read_csv(BytesIO(updated_csv_data))
 
             # Step 4: Import data from the updated CSV DataFrame into PostgreSQL
-            import_data_from_csv(df)
+            import_data_from_csv(df, user_id)
 
             return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
         except Exception as e:
@@ -244,8 +272,9 @@ def process_update_csv(request):
 import pandas as pd
 from django.db.models import F
 
-def import_data_from_csv(df):
+def import_data_from_csv(df, user_id):
     unique_list = df['party_name'].unique().tolist()
+    user_instance = Users.objects.get(id=user_id)
 
     for company in unique_list:
         account = company
@@ -279,6 +308,7 @@ def import_data_from_csv(df):
         print(account, 1, name, phone_number)
         invoice, created = Customers.objects.using('default').update_or_create(
             account=account,
+            user=user_instance,  # Pass user_id to the model
             defaults={
                 'optimal_due': round(optimal_due),
                 'threshold_due': round(threshold_due),
@@ -294,7 +324,7 @@ def import_data_from_csv(df):
 
     for _, row in df.iterrows():
         try:
-            customer = Customers.objects.using('default').get(account=row['party_name'])
+            customer = Customers.objects.using('default').get(account=row['party_name'], user=user_id)
         except Customers.DoesNotExist:
             continue
 
@@ -305,6 +335,7 @@ def import_data_from_csv(df):
             continue
 
         Invoice.objects.using('default').update_or_create(
+            user=user_instance,  # Pass user_id to the model
             invoice=customer,
             date=date,
             ref_no=row['ref_no'],
@@ -358,11 +389,12 @@ from rest_framework.response import Response
 from .models import Comments
 from .serializers import CommentsSerializer
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_all_comments(request):
-
+    data = json.loads(request.body)
+    user_id = data.get('user_id')
     # Filter comments based on provided parameters
-    comments_queryset = Comments.objects.all()
+    comments_queryset = Comments.objects.filter(user_id = user_id)
 
     # Serialize filtered queryset
     serializer = CommentsSerializer(comments_queryset, many=True)
@@ -374,23 +406,21 @@ from .models import Invoice, Customers
 from .serializers import InvoiceDetailSerializer
 from rest_framework.decorators import api_view
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_paid_Invoice(request):
-    if request.method == 'GET':
-        invoices = Invoice.objects.filter(paid=True).order_by('-paid_date')
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        invoices = Invoice.objects.filter(user_id=user_id,paid=True).order_by('-paid_date')
         for invoice in invoices:
-            customer = Customers.objects.filter(account=invoice.invoice.account).first()
+            customer = Customers.objects.filter(user_id = user_id, account=invoice.invoice.account).first()
             if customer:
                 invoice.invoice.phone_number = customer.phone_number
 
         serializer = InvoiceDetailSerializer(invoices, many=True)
         return JsonResponse(serializer.data, safe=False)
     else:
-        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
-
-
-
-
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
 
 
 
@@ -401,14 +431,17 @@ from .models import Customers, Invoice, Comments
 from .serializers import InvoiceSerializer
 from rest_framework.decorators import api_view
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_pending_invoices(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
         current_date = timezone.now().date()
 
         # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(invoice=OuterRef('pk')).order_by('-id')
+        last_comment = Comments.objects.filter(user_id=user_id, invoice=OuterRef('pk')).order_by('-id')
 
+        customers =Customers.objects.filter(user_id=user_id)
         # Annotate customers with the promised_date of the last comment
         customers = Customers.objects.annotate(
             last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
@@ -431,7 +464,7 @@ def get_pending_invoices(request):
         customer_data = []
         for customer in customers:
             # Filter unpaid invoices
-            unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
+            unpaid_invoices = Invoice.objects.filter(user_id=user_id, invoice=customer, paid=False)
             customer_dict = InvoiceSerializer(customer).data
             customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
             customer_data.append(customer_dict)
@@ -440,7 +473,7 @@ def get_pending_invoices(request):
         return JsonResponse(customer_data, safe=False)
     else:
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
-        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
     
 from django.http import JsonResponse
 from django.utils import timezone
@@ -449,16 +482,18 @@ from django.db.models import Subquery, OuterRef
 from .models import Customers, Comments
 from .serializers import InvoiceSerializer, CommentsSerializer
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_to_do_invoices(request):
-    if request.method == 'GET':
-        
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
         current_date = timezone.now().date()
         yesterday = current_date - timedelta(days=1)
         tomorrow = current_date + timedelta(days=1)
         # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(invoice=OuterRef('pk'), paid=False).order_by('-id')
+        last_comment = Comments.objects.filter(user_id = user_id, invoice=OuterRef('pk'), paid=False).order_by('-id')
     
+        customers =Customers.objects.filter(user_id=user_id)
         # Annotate customers with the promised_date of the last comment
         customers = Customers.objects.annotate(
             last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
@@ -467,23 +502,29 @@ def get_to_do_invoices(request):
         customers = customers.filter(
             last_promised_date__in=[yesterday, current_date, tomorrow]
         ).order_by('last_promised_date')
+
+        lis = []
+        sales = Sales_Persons.objects
+        data = SalesPersonsSerializer(sales, many=True).data
+        for sale in data:
+            lis.append(sale['name'])
         # Serialize the queryset
         customer_data = []
         for customer in customers:
-            unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
+            unpaid_invoices = Invoice.objects.filter(user_id=user_id, invoice=customer, paid=False)
             customer_dict = InvoiceSerializer(customer).data
             customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
-            comments = Comments.objects.filter(invoice__account=customer.account, paid=False, promised_date__in=[yesterday, current_date, tomorrow])
+            comments = Comments.objects.filter(user_id=user_id, invoice__account=customer.account, paid=False, promised_date__in=[yesterday, current_date, tomorrow])
             comments_data = CommentsSerializer(comments, many=True).data
             customer_dict['comments'] = comments_data
             
             customer_data.append(customer_dict)
 
         # Return the ordered customers as JSON response
-        return JsonResponse(customer_data, safe=False)
+        return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
-        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
     
 
 
@@ -495,15 +536,17 @@ from django.db.models import Subquery, OuterRef, Q
 from .models import Customers, Comments, Invoice
 from .serializers import InvoiceSerializer, InvoiceDetailSerializer
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_pending_invoices(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
         current_date = timezone.now().date()
         yesterday = current_date - timedelta(days=1)
 
         # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(invoice=OuterRef('pk')).order_by('-id')
-
+        last_comment = Comments.objects.filter(user_id=user_id, invoice=OuterRef('pk')).order_by('-id')
+        customers = Customers.objects.filter(user_id=user_id)
         # Annotate customers with the promised_date of the last comment
         customers = Customers.objects.annotate(
             last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
@@ -515,6 +558,11 @@ def get_pending_invoices(request):
         # Order the customers with last_promised_date < yesterday at the top and others at the bottom
         customers = customers.annotate(is_old=Case(When(last_promised_date__lt=yesterday, then=Value(1)), default=Value(0), output_field=IntegerField())).order_by('-is_old', '-over_due')
 
+        lis = []
+        sales = Sales_Persons.objects
+        data = SalesPersonsSerializer(sales, many=True).data
+        for sale in data:
+            lis.append(sale['name'])
         # Serialize the queryset
         customer_data = []
         for customer in customers:
@@ -525,8 +573,85 @@ def get_pending_invoices(request):
             customer_data.append(customer_dict)
 
         # Return the ordered customers as JSON response
-        return JsonResponse(customer_data, safe=False)
+        return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
-        return JsonResponse({'error': 'Only GET method is allowed for this endpoint'}, status=405)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
 
+
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+
+import json
+from .models import Sales_Persons
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_invoice_sales_person(request):
+    try:
+        # Parse input parameters from JSON data
+        data = json.loads(request.body)
+        sales_data = data.get('sales_Data')
+        user_id = data.get('user_id')
+
+        for each in sales_data:
+            ref_no = each[0]
+            sales_person_name = each[1]
+            print(f"Ref No: {ref_no}, Sales Person Name: {sales_person_name}")
+
+            person = get_object_or_404(Invoice,user_id=user_id, ref_no=ref_no)
+            sales_person_instance = get_object_or_404(Sales_Persons, name=sales_person_name)
+            print(f"Fetched Sales Person: {sales_person_instance}")
+
+            person.sales_person = sales_person_instance
+            person.save()
+            print(person.sales_person)
+
+        return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+from .models import Users
+from rest_framework.decorators import api_view
+
+@api_view(['POST'])
+def login(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+        users = Users.objects.filter(username=username)
+        if len(users) > 0:
+            if users[0].password == password:
+                print('yes')
+                return JsonResponse({'id': users[0].id, 'username': users[0].username})
+            
+        return JsonResponse({'error': 'Incorrect password'}, status=400)
+
+    else:
+        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import Sales_Persons
+from .serializers import SalesPersonsSerializer
+
+@api_view(['POST'])
+def create_sales(request):
+    serializer = SalesPersonsSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
