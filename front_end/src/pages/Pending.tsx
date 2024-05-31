@@ -443,7 +443,7 @@ const Pending: React.FC = () => {
                 <button className='border border-black rounded-xl p-2' onClick={() => prevcomments()}>{prev_com ?("Back") : ("Previous Comments")}</button>
 
                 {!prev_com && (<div>
-                  {(comacc && remarks) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date)} className='border border-black rounded-xl p-2' >Create</button>) : (<button className='border border-black rounded-xl p-2'>Create</button>)}
+                  {(comacc && remarks) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date)} className='border border-black rounded-xl p-2' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
 
               </div>

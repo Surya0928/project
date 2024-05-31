@@ -340,7 +340,7 @@ const Home: React.FC = () => {
             remarks : remarks || selectedOption,
             amount_promised: prom_amount || totalPendingAmount || 0.00,
             sales_person: salesPersonKey || null,
-            follow_up_date: follow_up_date,
+            follow_up_date: follow_up_date || null,
             promised_date: paymentdate || null,
             
           }),
@@ -573,7 +573,7 @@ const Home: React.FC = () => {
                 </div>
 
                 {!prev_com && (<div>
-                  {(comacc && remarks) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date)} className='w-28 text-center rounded-xl p-2 bg-blue-600 text-white' >Create</button>) : (<button className='w-28 text-center border border-black rounded-xl p-2'>Create</button>)}
+                  {(comacc && remarks) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date)} className='w-28 text-center rounded-xl p-2 bg-blue-600 text-white' >Submit</button>) : (<button className='w-28 text-center border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
               </div>
             )}
