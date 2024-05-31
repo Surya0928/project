@@ -341,11 +341,13 @@ def import_data_from_csv(df, user_id):
         Invoice.objects.using('default').update_or_create(
             user=user_instance,  # Pass user_id to the model
             invoice=customer,
-            date=date,
             ref_no=row['ref_no'],
-            pending=float(row['pending_amount']),
-            due_on=due_on,
-            days_passed=int(row['days_passed'])
+            defaults={
+                'date': date,
+                'pending': float(row['pending_amount']),
+                'due_on': due_on,
+                'days_passed': int(row['days_passed']),
+            }
         )
 
 
@@ -540,9 +542,10 @@ def get_pending_invoices(request):
             for customer in customers:
                 # Filter unpaid invoices
                 unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
-                customer_dict = InvoiceSerializer(customer).data
-                customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
-                customer_data.append(customer_dict)
+                if len(unpaid_invoices) > 0:
+                    customer_dict = InvoiceSerializer(customer).data
+                    customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
+                    customer_data.append(customer_dict)
         else:
             customer_data = []
         # Return the    ordered customers as JSON response
