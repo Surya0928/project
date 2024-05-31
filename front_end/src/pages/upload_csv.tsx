@@ -53,6 +53,9 @@ const CSVUploadPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('csv_file', file);
+    {user_id && (
+      formData.append('user_id', user_id.toString())
+      )}
 
     try {
       const response = await fetch('http://165.232.188.250:8080/process_update_csv/', {
