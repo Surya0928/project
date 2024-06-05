@@ -68,7 +68,7 @@ const Pending: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/pending_invoices/', {
+      const response = await fetch('http://165.232.188.250:8080/pending_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ const Pending: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://127.0.0.1:8000/update-customer/', {
+        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ const Pending: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
+          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ const Pending: React.FC = () => {
 
     if (account) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
+        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -410,7 +410,7 @@ const Pending: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
