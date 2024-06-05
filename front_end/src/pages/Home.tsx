@@ -3,7 +3,7 @@ import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
 import { AccountInfo, InvoiceDetail, CommentInfo, SalesPerson } from '../models';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil , faSquarePlus, faHome, faClock, faList, faSquareCheck } from '@fortawesome/free-solid-svg-icons';
+import { faPencil , faSquarePlus} from '@fortawesome/free-solid-svg-icons';
 import { useHistory } from 'react-router-dom';
 import { AppProvider, useAppContext } from '../components/app_variables';
 
@@ -27,6 +27,7 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sales, setsales] = useState<string[]>([]);
   const [follow_up_date, setfollow_up_date] = useState<string>('');
+  
   
   const [salesPersonMapping, setSalesPersonMapping] = useState<{ [key: number]: string }>({});
 
@@ -66,7 +67,7 @@ const Home: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,6 +121,7 @@ const Home: React.FC = () => {
   };
 
   const backcomsec = (account: string) => {
+    setTotalPendingAmount(0);
     setSelectedOption('Select Response');
     setRemarks('');
     setSelectedRefNumbers([]);
@@ -185,14 +187,14 @@ const Home: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
+        const response = await fetch('http://127.0.0.1:8000/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             account,
-            user_id: user_id,
+            user: user_id,
             promised_amount: Amount,
             promised_date: date || null,
             name: Name,
@@ -210,7 +212,7 @@ const Home: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
+          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -251,6 +253,7 @@ const Home: React.FC = () => {
     setSelectedOption(value);
     if (value !== "other") {
       setRemarks(value);
+      
     }
     if (value === "No Response") {
       const tomorrow = new Date();
@@ -261,6 +264,18 @@ const Home: React.FC = () => {
       const formattedDate = `${year}-${month}-${day}`;
       setfollow_up_date(formattedDate);
       console.log(formattedDate); // Log the formatted date directly
+      setpromised_date('');
+      setTotalPendingAmount(0)
+      setprom_amount(0.00)
+      
+      set_invoices_paid(false)
+    }
+    if (value === "Requested Call Back") {
+      setTotalPendingAmount(0);
+      set_invoices_paid(false);
+    }
+    if (value !== 'No Response') {
+      setfollow_up_date('');
     }
   };
 
@@ -271,10 +286,6 @@ const Home: React.FC = () => {
     setAmount(amount);
   };
 
-  const [sales_follow_msg, setsales_follow_msg] = useState<string>('');
-
-  const [sales_follow_response, setsales_follow_response] = useState<string>('');
-
   const [promised_date, setpromised_date] = useState<string>('');
   const handlepromised_updateChange = (date: string) => {
     setpromised_date(date);
@@ -283,6 +294,14 @@ const Home: React.FC = () => {
   
   const handlefollowupdateChange = (date: string) => {
     setfollow_up_date(date);
+  };
+
+  const [invoices_paid, set_invoices_paid] = useState<boolean>(false);
+  const handleinvoices_paidstatus = () => {
+    if (selectedRefNumbers.length > 0) {
+      set_invoices_paid(!invoices_paid);
+      setprom_amount(0.00);
+    }
   };
 
   const [selectedRefNumbers, setSelectedRefNumbers] = useState<string[]>([]);
@@ -314,7 +333,7 @@ const Home: React.FC = () => {
   };
   const selectedRefNumbersString = selectedRefNumbers.join(', ');
 
-  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string) => {
+  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean) => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding leading zero if necessary
@@ -326,7 +345,7 @@ const Home: React.FC = () => {
 
     if (account) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -342,12 +361,23 @@ const Home: React.FC = () => {
             sales_person: salesPersonKey || null,
             follow_up_date: follow_up_date || null,
             promised_date: paymentdate || null,
-            
+            invoices_paid: invoices_paid,
           }),
         });
       
         if (response.ok) {
           console.log('Comment created successfully');
+          setTotalPendingAmount(0);
+          setSelectedOption('Select Response');
+          setRemarks('');
+          setSelectedRefNumbers([]);
+          setpromised_date('');
+          setdate('');
+          setprom_amount(0);
+          setcomacc('');
+          setSelectedAccount('');
+          setfollow_up_date('')
+          fetchData();
           setprevcom(true);
         } else {
           console.error('Failed to create comment');
@@ -356,7 +386,6 @@ const Home: React.FC = () => {
         console.error('Error creating comment:', error);
       }
       
-      fetchData();
       handleSubmit(account);
 
     }
@@ -370,7 +399,7 @@ const Home: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -396,38 +425,7 @@ const Home: React.FC = () => {
     }
   };
   
-  const handleCommentPaidStatusChange = async (comment: CommentInfo) => {
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding leading zero if necessary
-    const day = String(currentDate.getDate()).padStart(2, '0'); // Adding leading zero if necessary
-    const todayDate = `${year}-${month}-${day}`;
-  
-    try {
-      const response = await fetch('http://165.232.188.250:8080/comment_paid/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          comment_id: comment.id,
-          paid_status: !comment.paid,
-          paid_date: comment.paid ? null : todayDate,
-        }),
-      });
-  
-      console.log(comment.id, !comment.paid);
-      if (response.ok) {
-        console.log('Paid status updated successfully');
-        // Refetch data after successful API call
-        fetchData();
-      } else {
-        console.error('Failed to update paid status');
-      }
-    } catch (error) {
-      console.error('Error updating paid status:', error);
-    }
-  };
+
 
   
   return (
@@ -441,6 +439,7 @@ const Home: React.FC = () => {
               <button className='border border-black rounded-xl p-2' onClick={() => backcomsec(selectedAccount)}>Cancel</button>
               <div className='flex space-x-4 w-auto h-auto items-center justify-center'>
                 <button className='border border-black rounded-xl p-2' onClick={() => prevcomments()}>{prev_com ?("Back") : ("Previous Comments")}</button>
+
               </div>
             </div>
             {prev_com ? 
@@ -485,7 +484,7 @@ const Home: React.FC = () => {
                           <table className="table-auto w-full border-collapse border border-gray-400">
                             <thead>
                               <tr>
-                                <th className="text-center border border-gray-400 p-2">Check</th>
+                                <th className="text-center border border-gray-400 p-2">Select</th>
                                 <th className="text-center border border-gray-400 p-2">Ref No</th>
                                 <th className="text-center border border-gray-400 p-2">Date</th>
                                 <th className="text-center border border-gray-400 p-2">Days Passed</th>
@@ -542,12 +541,12 @@ const Home: React.FC = () => {
                 </div>
                 <div className='flex h-13 space-x-3 w-64 items-center justify-between'>
                   <div className='font-bold underline'>Amount_Promised:</div>
-                  <input id='amount_promised' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='bg-white w-10/12 pl-1 border border-black'></input>
+                  <input disabled = {(selectedOption != 'Other') || selectedRefNumbers.length === 0} id='amount_promised' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='bg-white w-10/12 pl-1 border border-black'></input>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center'>
                   <div className='font-bold underline'>Follow_up Date: </div>
                   {selectedOption=='No Response' ? <div>{follow_up_date}</div>: (
-                    <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={follow_up_date} onChange={(e) => handlefollowupdateChange(e.target.value)} type="date"/>
+                    <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' disabled={invoices_paid == true} value={follow_up_date} onChange={(e) => handlefollowupdateChange(e.target.value)} type="date"/>
                   )}
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center' >
@@ -556,6 +555,7 @@ const Home: React.FC = () => {
                     type="checkbox"
                     checked={assigntosales}
                     onChange={() => handleAssigntsales()}
+                    disabled = {(selectedOption === 'No Response' || selectedOption === 'Requested Call Back') || invoices_paid == true}
                   />
                   {assigntosales && (
                   <select value={Sales_p} onChange={(e) => handleSales_PChange(e)} className='w-48 pl-1 bg-white border border-black'>
@@ -569,12 +569,23 @@ const Home: React.FC = () => {
 
                 <div className='flex h-13 space-x-3 w-full items-center'>
                   <div className='font-bold underline'>Promised Payment Date: </div>
-                  <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={promised_date} onChange={(e) => handlepromised_updateChange(e.target.value)} type="date"/>
+                  <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' disabled = {selectedOption === 'No Response' || invoices_paid == true} value={promised_date} onChange={(e) => handlepromised_updateChange(e.target.value)} type="date"/>
+                </div>
+                
+                <div className='flex h-13 space-x-3 w-full items-center' >
+                  <div className='font-bold underline'>Paid:</div>
+                  <input
+                    type="checkbox"
+                    checked={invoices_paid}
+                    onChange={() => handleinvoices_paidstatus()}
+                    disabled = {selectedOption === ('No Response' || 'Requested Call') || selectedRefNumbers.length == 0}
+                  />
                 </div>
 
                 {!prev_com && (<div>
-                  {(comacc && remarks) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date)} className='w-28 text-center rounded-xl p-2 bg-blue-600 text-white' >Submit</button>) : (<button className='w-28 text-center border border-black rounded-xl p-2'>Submit</button>)}
+                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
+                
               </div>
             )}
           </div>
@@ -750,7 +761,6 @@ const Home: React.FC = () => {
                         <th className="text-center border border-gray-400 p-2">Amount_Promised</th>
                         <th className="text-center border border-gray-400 p-2">Follow_up_date</th>
                         <th className="text-center border border-gray-400 p-2">Promised_date</th>
-                        <th className="text-center border border-gray-400 p-2">Paid</th>
                         
                       </tr>
                     </thead>
@@ -763,13 +773,6 @@ const Home: React.FC = () => {
                           <td className="text-center border border-gray-400 p-2">{comment.amount_promised}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.follow_up_date}</td>
                           <td className="text-center border border-gray-400 p-2">{comment.promised_date}</td>
-                          <td className="text-center border border-gray-400 p-2">
-                          <input
-                            type="checkbox"
-                            checked={comment.paid}
-                            onChange={() => handleCommentPaidStatusChange(comment)}
-                          />
-                          </td>
                         </tr>
                       ))}
                     </tbody>

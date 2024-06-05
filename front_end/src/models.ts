@@ -55,3 +55,47 @@ export interface AccountInfo {
   premium_user: boolean;
 }
   
+export interface DataByDate {
+  [date: string]: Data_by_Day[];
+}
+
+export interface Data_by_Day {
+  id: number;
+  account: string;
+  name: string;
+  phone_number: string;
+  optimal_due: number;
+  threshold_due: number;
+  over_due: number;
+  total_due: number;
+  invoices: number;
+  invoice_details: InvoiceDetail[];
+  comments: CommentInfo[];
+  promised_amount: number;
+  promised_date: string;
+  premium_user: boolean;
+  invoice_list: string;
+  follow_up_date: string;
+  sales_person: string;
+}
+
+
+export interface Paidinfo {
+  id: number;
+  account: string;
+  name: string;
+  phone_number: string;
+  optimal_due: number;
+  threshold_due: number;
+  over_due: number;
+  total_due: number;
+  invoices: number;
+  invoice_details: InvoiceDetail[];
+  comments: CommentInfo[];
+  promised_amount: number;
+  promised_date: string;
+  premium_user: boolean;
+  amount_paid : string;
+  number_of_invoices: number;
+  last_payment_date : string;
+}
