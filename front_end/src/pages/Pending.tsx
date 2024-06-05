@@ -27,6 +27,7 @@ const Pending: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sales, setsales] = useState<string[]>([]);
   const [follow_up_date, setfollow_up_date] = useState<string>('');
+  const [followUpTime, setFollowUpTime] = useState(''); 
   
   
   const [salesPersonMapping, setSalesPersonMapping] = useState<{ [key: number]: string }>({});
@@ -67,7 +68,7 @@ const Pending: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/pending_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/pending_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,6 +132,9 @@ const Pending: React.FC = () => {
     setcomacc('');
     setSelectedAccount('');
     setfollow_up_date('')
+    setFollowUpTime('');
+    setassigntosales(false);
+    setSales_p('');
     setprevcom(false)
     setcomsec(false);
   };
@@ -187,7 +191,7 @@ const Pending: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
+        const response = await fetch('http://127.0.0.1:8000/update-customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -212,7 +216,7 @@ const Pending: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
+          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -251,9 +255,6 @@ const Pending: React.FC = () => {
   const handleRemarksChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     setSelectedOption(value);
-    if (value !== "other") {
-      setRemarks(value);
-    }
     if (value === "No Response") {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -275,7 +276,8 @@ const Pending: React.FC = () => {
       set_invoices_paid(false);
     }
     if (value !== 'No Response') {
-      setfollow_up_date('');
+      setfollow_up_date('')
+    setFollowUpTime('');;
     }
   };
 
@@ -333,7 +335,7 @@ const Pending: React.FC = () => {
   };
   const selectedRefNumbersString = selectedRefNumbers.join(', ');
 
-  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean) => {
+  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean, followUpTime: string) => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding leading zero if necessary
@@ -341,11 +343,16 @@ const Pending: React.FC = () => {
     // Add more logs to inspect the form elements and values
     const salesPersonKey = Object.keys(salesPersonMapping)
     .find((key) => salesPersonMapping[Number(key)] === sales);
-
+    if (selectedOption && selectedOption !== 'other') {
+      remarks = `${selectedOption}. ${remarks}`;
+    }
+    if (selectedOption && selectedOption == 'No Response' || selectedOption == 'Requested Call Back') {
+      prom_amount = 0.00
+    }
 
     if (account) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -360,6 +367,7 @@ const Pending: React.FC = () => {
             amount_promised: prom_amount || totalPendingAmount || 0.00,
             sales_person: salesPersonKey || null,
             follow_up_date: follow_up_date || null,
+            follow_up_time: followUpTime || null,
             promised_date: paymentdate || null,
             invoices_paid: invoices_paid,
           }),
@@ -377,6 +385,9 @@ const Pending: React.FC = () => {
           setcomacc('');
           setSelectedAccount('');
           setfollow_up_date('')
+    setFollowUpTime('');
+          setassigntosales(false);
+          setSales_p('');
           fetchData();
           setcomsec(false);
         } else {
@@ -399,7 +410,7 @@ const Pending: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -530,7 +541,7 @@ const Pending: React.FC = () => {
                   <option value="Requested Call Back">Requested Call Back</option>
                   <option value="other">Other</option>
                 </select>
-                {selectedOption === "other" && (
+                {selectedOption != 'Select Response' && (
                   <textarea
                     id='remarks'
                     onChange={(event) => setRemarks(event.target.value)}
@@ -541,13 +552,20 @@ const Pending: React.FC = () => {
                 </div>
                 <div className='flex h-13 space-x-3 w-64 items-center justify-between'>
                   <div className='font-bold underline'>Amount_Promised:</div>
-                  <input disabled = {(selectedOption != 'Other') || selectedRefNumbers.length === 0} id='amount_promised' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='bg-white w-10/12 pl-1 border border-black'></input>
+                  <input disabled = {(selectedOption != 'other') || selectedRefNumbers.length === 0} id='amount_promised' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handleprom_amountsChange(Number(e.target.value))} className='bg-white w-10/12 pl-1 border border-black'></input>
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center'>
                   <div className='font-bold underline'>Follow_up Date: </div>
                   {selectedOption=='No Response' ? <div>{follow_up_date}</div>: (
                     <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' disabled={invoices_paid == true} value={follow_up_date} onChange={(e) => handlefollowupdateChange(e.target.value)} type="date"/>
                   )}
+                  <div className='font-bold underline'>Follow_up Time: </div>
+                  <input 
+                    type="time" 
+                    value={followUpTime} 
+                    onChange={(e) => setFollowUpTime(e.target.value)} 
+                    placeholder="Follow Up Time" 
+                  />
                 </div>
                 <div className='flex h-13 space-x-3 w-full items-center' >
                   <div className='font-bold underline'>Assign To Sales Person: </div>
@@ -583,7 +601,7 @@ const Pending: React.FC = () => {
                 </div>
 
                 {!prev_com && (<div>
-                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
+                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid, followUpTime)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
                 
               </div>

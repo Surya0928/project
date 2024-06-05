@@ -32,9 +32,9 @@ const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
   };
 
   const create_sales = async () => {
-    if (Name && Address && Phone && Email) {
+    if (Name) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-sales/', {
+        const response = await fetch('http://127.0.0.1:8000/create-sales/', {
           
           method: 'POST',
           headers: {
@@ -42,9 +42,9 @@ const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
           },
           body: JSON.stringify({
             name: Name,
-            phone_number: Phone,
-            address: Address,
-            email: Email
+            phone_number: Phone || null,
+            address: Address || null,
+            email: Email || null
           }),
         });
       
