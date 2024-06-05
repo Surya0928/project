@@ -15,7 +15,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['id','user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'sales_person']
+        fields = ['id','user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'sales_person', 'comment_paid', 'follow_up_time']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value

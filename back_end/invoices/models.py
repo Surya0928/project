@@ -58,7 +58,8 @@ class Comments(models.Model):
     follow_up_date = models.DateField(null=True, blank=True)
     sales_person = models.ForeignKey(Sales_Persons,on_delete=models.SET_NULL, related_name='comments_sales_pz', default=None, null=True, blank=True)
     promised_date = models.DateField(null=True, blank=True)
-
+    follow_up_time = models.TimeField(null=True, blank=True)
+    comment_paid = models.BooleanField(default=False, null=True)
 
     
 

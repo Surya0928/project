@@ -338,6 +338,7 @@ def create_comment(request):
     try:
         data = json.loads(request.body)
         user_id = Users.objects.get(id=data.get('user'))
+        print(data.get('invoices_paid'))
         customer = Customers.objects.get(user=user_id, account=data.get('invoice'))
         if data.get('invoice_list'):
             for each in (data.get('invoice_list').split(', ')):
@@ -357,13 +358,15 @@ def create_comment(request):
             'amount_promised': data.get('amount_promised'),
             'sales_person': data.get('sales_person'),
             'follow_up_date': data.get('follow_up_date'),
-            'promised_date': data.get('promised_date')
+            'promised_date': data.get('promised_date'),
+            'comment_paid': data.get('invoices_paid'),
+            'follow_up_time': data.get('follow_up_time')
         }
 
         serializer = CommentsSerializer(data=comment_data)
-        
+        print(serializer)
         if serializer.is_valid():
-            
+            print(serializer.validated_data)
             comment = Comments.objects.create(
                 user=user_id,
                 invoice=customer,
@@ -374,6 +377,8 @@ def create_comment(request):
                 sales_person=serializer.validated_data.get('sales_person'),
                 follow_up_date=serializer.validated_data.get('follow_up_date'),  # Corrected key
                 promised_date=serializer.validated_data.get('promised_date'),
+                comment_paid= serializer.validated_data.get('comment_paid'),
+                follow_up_time= serializer.validated_data.get('follow_up_time')
             )
             
             return Response(CommentsSerializer(comment).data, status=status.HTTP_201_CREATED)
@@ -499,9 +504,10 @@ def get_to_do_invoices(request):
             customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
             comments = Comments.objects.filter(
                 user=user_id,
-                invoice=customer
+                invoice=customer,
+                comment_paid=False,
             ).order_by('-id')
-            if len(comments)>0:
+            if len(comments)>0 and len(unpaid_invoices)>0:
                 comments_data = CommentsSerializer(comments, many=True).data
                 customer_dict['comments'] = comments_data
                 last_comment = comments[0]
@@ -509,6 +515,7 @@ def get_to_do_invoices(request):
                 customer_dict['invoice_list'] = last_comment.invoice_list
                 customer_dict['promised_amount'] = last_comment.amount_promised
                 customer_dict['follow_up_date'] = last_comment.follow_up_date
+                customer_dict['follow_up_time'] = last_comment.follow_up_time
                 customer_dict['promised_date'] = last_comment.promised_date
                 if last_comment.sales_person:
                     customer_dict['sales_person'] = Sales_Persons.objects.get(name=last_comment.sales_person).name
@@ -517,8 +524,8 @@ def get_to_do_invoices(request):
                 
                 # Determine the key date with follow_up_date taking priority
                 key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
-                if key_date and key_date <= current_date:
-                    key_str = current_date.strftime('%Y-%m-%d')  # Group under today's date if date is less than or equal to today
+                if key_date and key_date < current_date:
+                    key_str = 'Pending' # Group under today's date if date is less than or equal to today
                 else:
                     key_str = key_date.strftime('%Y-%m-%d') if key_date else 'unknown_date'
                 
@@ -526,8 +533,12 @@ def get_to_do_invoices(request):
                     full_data[key_str].append(customer_dict)
                 else:
                     full_data[key_str] = [customer_dict]
-        sorted_full_data = OrderedDict(sorted(full_data.items()))
-        # Return the ordered customers as JSON response
+        sorted_full_data = OrderedDict()
+        if 'Pending' in full_data:
+            sorted_full_data['Pending'] = sorted(full_data.pop('Pending'), key=lambda x: x.get('follow_up_time') or '')
+
+        for key in sorted(full_data.keys()):
+            sorted_full_data[key] = sorted(full_data[key], key=lambda x: x.get('follow_up_time') or '')
         return JsonResponse({
             'sales_data': data,
             'sales': lis,
