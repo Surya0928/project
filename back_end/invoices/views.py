@@ -29,10 +29,9 @@ def get_all_invoices(request):
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
         customers = Customers.objects.filter(user = user_id)
-        print(customers)
+        # print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
-            print
             customers = Customers.objects.annotate(
                 last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
             ).filter(user = user_id)
@@ -49,25 +48,25 @@ def get_all_invoices(request):
 
             # Order the customers
             customers = customers.order_by('premium_user_order', '-over_due', 'last_promised_date', 'id')
-            print(customers)
+            # print(customers)
             # Serialize the queryset
             customer_data = []
             for customer in customers:
                 # Filter unpaid invoices
                 customer_dict = InvoiceSerializer(customer).data
+                comments = Comments.objects.filter(user = customer_dict['user'], invoice = customer_dict['id'])
+                customer_dict['comments'] =CommentsSerializer(comments, many = True).data
                 invoices = Invoice.objects.filter(user = user_id , invoice=customer).order_by('date', 'id')
                 if len(invoices) > 0:
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
                 else:
                     customer_dict['invoice_details'] =[]
+                
                 # for each in invoices:
                 #     sales_person = Sales_Persons.objects.filter(name = each.sales_person)
                 #     if len(sales_person) > 0:
                 #         each.sales_person = sales_person[0].name
-                
-                
-                
-
+            
                 customer_data.append(customer_dict)
         else:
             customer_data = []
@@ -109,55 +108,6 @@ def update_invoice_paid_status(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    
-
-
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.shortcuts import get_object_or_404
-from django.db import transaction
-from django.views.decorators.csrf import csrf_exempt
-
-import json
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def update_comment_paid_status(request):
-    try:
-        # Parse input parameters from JSON data
-        data = json.loads(request.body)
-        comment = data.get('comment_id')
-        paid_status = data.get('paid_status')
-        paid_date = data.get('paid_date')
-
-        # Fetch the comment
-        comment = get_object_or_404(Comments, id=comment)
-        customer = Customers.objects.filter(account = comment.invoice)
-        print(len(customer))
-        
-        # Update the paid field of the comment
-        comment.paid = paid_status
-        comment.paid_date = paid_date
-        comment.save()
-
-        comments = Comments.objects.filter(invoice = comment.invoice, paid = False).order_by('-id')
-        print(len(comments))
-        if len(comments) > 0:
-            customer[0].promised_date = comments[0].promised_date
-            customer[0].promised_amount = comments[0].amount_promised
-            customer[0].save()
-        else:
-            customer[0].promised_date = None
-            customer[0].promised_amount = 0.00
-            customer[0].save()
-
-        return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
-
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-
-
 
 import csv
 from io import TextIOWrapper, BytesIO
@@ -361,28 +311,78 @@ class CustomerUpdateAPIView(APIView):
     def post(self, request):
         serializer = CustomerUpdateSerializer(data=request.data)
         if serializer.is_valid():
+            print(serializer.validated_data)
             account = serializer.validated_data['account']
+            user = serializer.validated_data['user']
+            user_instance = Users.objects.get(id=user)
+            serializer.validated_data['user'] = user_instance
             try:
-                customer = Customers.objects.get(account=account)
+                customer = Customers.objects.get(account=account, user=user)
                 serializer.update(customer, serializer.validated_data)
                 return Response("Customer record updated successfully", status=status.HTTP_200_OK)
             except Customers.DoesNotExist:
                 return Response("Customer not found", status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .models import Customers, Comments
+from rest_framework.response import Response
+from rest_framework import status
+import json
+from .models import Users, Customers, Comments
 from .serializers import CommentsSerializer
+from datetime import datetime
+
 
 @api_view(['POST'])
 def create_comment(request):
-    serializer = CommentsSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        data = json.loads(request.body)
+        user_id = Users.objects.get(id=data.get('user'))
+        customer = Customers.objects.get(user=user_id, account=data.get('invoice'))
+        if data.get('invoice_list'):
+            for each in (data.get('invoice_list').split(', ')):
+                invoice = get_object_or_404(Invoice, ref_no=each, user = data.get('user'), invoice = customer.id)
+                # print(each, invoice)
+
+            # Update the paid field of the comment
+                invoice.paid = data.get('invoices_paid')
+                invoice.paid_date = datetime.today().strftime('%Y-%m-%d')
+                invoice.save()
+        comment_data = {
+            'user': user_id.id,
+            'invoice': customer.id,
+            'date': data.get('date'),
+            'invoice_list': data.get('invoice_list'),
+            'remarks': data.get('remarks'),
+            'amount_promised': data.get('amount_promised'),
+            'sales_person': data.get('sales_person'),
+            'follow_up_date': data.get('follow_up_date'),
+            'promised_date': data.get('promised_date')
+        }
+
+        serializer = CommentsSerializer(data=comment_data)
+        
+        if serializer.is_valid():
+            
+            comment = Comments.objects.create(
+                user=user_id,
+                invoice=customer,
+                date=serializer.validated_data.get('date'),
+                invoice_list=serializer.validated_data.get('invoice_list'),
+                remarks=serializer.validated_data.get('remarks'),
+                amount_promised=serializer.validated_data.get('amount_promised'),
+                sales_person=serializer.validated_data.get('sales_person'),
+                follow_up_date=serializer.validated_data.get('follow_up_date'),  # Corrected key
+                promised_date=serializer.validated_data.get('promised_date'),
+            )
+            
+            return Response(CommentsSerializer(comment).data, status=status.HTTP_201_CREATED)
+        
+        # Return errors if serializer data is invalid
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 from rest_framework.decorators import api_view
@@ -417,77 +417,34 @@ from rest_framework.decorators import api_view
 def get_paid_Invoice(request):
     if request.method == 'POST':
         data = json.loads(request.body)
+
         user_id = Users.objects.get(id=data.get('user_id'))
-        
-        invoices = Invoice.objects.filter(user=user_id,paid=True).order_by('-paid_date')
-        if len(invoices) > 0:
-            for invoice in invoices:
-                customer = Customers.objects.filter(user = user_id, account=invoice.invoice.account).first()
-                if customer:
-                    invoice.invoice.phone_number = customer.phone_number
-
-            serializer = (InvoiceDetailSerializer(invoices, many=True)).data
-        else:
-            serializer = []
-
-        return JsonResponse(serializer, safe=False)
-    else:
-        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
-    
-from django.http import JsonResponse
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Subquery, OuterRef
-from .models import Customers, Comments
-from .serializers import InvoiceSerializer, CommentsSerializer
-
-@api_view(['POST'])
-def get_to_do_invoices(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        user_id = Users.objects.get(id=data.get('user_id'))
-        current_date = timezone.now().date()
-        yesterday = current_date - timedelta(days=1)
-        tomorrow = current_date + timedelta(days=1)
-        # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(user = user_id, invoice=OuterRef('pk'), paid=False).order_by('-id')
         lis = []
         sales = Sales_Persons.objects
         data = SalesPersonsSerializer(sales, many=True).data
         for sale in data:
             lis.append(sale['name'])
-    
-        customers =Customers.objects.filter(user=user_id)
+        # Subquery to get the promised_date of the last comment for each customer
+
+        customers = Customers.objects.filter(user = user_id)
+        # print(customers)
         # Annotate customers with the promised_date of the last comment
-        if len(customers) > 0:
-            customers = Customers.objects.annotate(
-                last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
-                follow_up_date=Subquery(last_comment.values('follow_up_date')[:1]),
-            ).filter(user = user_id)
-
-            customers = customers.filter(
-                Q(promised_date__in=[yesterday, current_date, tomorrow]) |
-                    Q(follow_up_date__in=[yesterday, current_date, tomorrow])
-            ).order_by('last_promised_date')
-
-
-            # Serialize the queryset
+        if len(customers)>0:
             customer_data = []
             for customer in customers:
-                unpaid_invoices = Invoice.objects.filter(user=user_id, invoice=customer, paid=False)
+                # Filter unpaid invoices
                 customer_dict = InvoiceSerializer(customer).data
-                customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
-                comments = Comments.objects.filter(
-                    Q(user=user_id) &
-                    Q(invoice__account=customer.account) &
-                    Q(paid=False) &
-                    (Q(promised_date__in=[yesterday, current_date, tomorrow]) |
-                    Q(follow_up_date__in=[yesterday, current_date, tomorrow]))
-                )
-                comments_data = CommentsSerializer(comments, many=True).data
-                customer_dict['comments'] = comments_data
-                
-                customer_data.append(customer_dict)
+                invoices = Invoice.objects.filter(user = user_id , invoice=customer, paid = True).order_by('-paid_date', '-pending')
+                paid_amount = 0
+                for each in invoices:
+                    paid_amount += each.pending
+                if len(invoices) > 0:
+                    customer_dict['last_payment_date'] = invoices[0].paid_date
+                    customer_dict['amount_paid'] = paid_amount
+                    customer_dict['number_of_invoices'] = len(invoices)
+                    customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
+                    customer_data.append(customer_dict)
+
         else:
             customer_data = []
 
@@ -497,7 +454,85 @@ def get_to_do_invoices(request):
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
     
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Subquery, OuterRef
+from .models import Customers, Comments
+from .serializers import InvoiceSerializer, CommentsSerializer
+from datetime import timedelta, date
+from collections import OrderedDict
 
+
+@api_view(['POST'])
+
+def get_to_do_invoices(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = Users.objects.get(id=data.get('user_id'))
+        current_date = timezone.now().date()
+        tomorrow = current_date + timedelta(days=1)
+        
+        # Subquery to get the promised_date and follow_up_date of the last comment for each customer
+        last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk')).order_by('-id')
+        lis = []
+        sales = Sales_Persons.objects
+        data = SalesPersonsSerializer(sales, many=True).data
+        for sale in data:
+            lis.append(sale['name'])
+        
+        # Get list of customers for the user
+        customers = Customers.objects.filter(user=user_id)
+        
+        # Annotate customers with the promised_date and follow_up_date of the last comment
+        customers = customers.annotate(
+            last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
+            follow_up_date=Subquery(last_comment.values('follow_up_date')[:1]),
+        ).filter(user=user_id)
+        
+        full_data = {}
+
+        # Iterate through customers to classify them based on follow_up_date or promised_date
+        for customer in customers:
+            unpaid_invoices = Invoice.objects.filter(user=user_id, invoice=customer, paid=False)
+            customer_dict = InvoiceSerializer(customer).data
+            customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
+            comments = Comments.objects.filter(
+                user=user_id,
+                invoice=customer
+            ).order_by('-id')
+            if len(comments)>0:
+                comments_data = CommentsSerializer(comments, many=True).data
+                customer_dict['comments'] = comments_data
+                last_comment = comments[0]
+                print(last_comment.sales_person)
+                customer_dict['invoice_list'] = last_comment.invoice_list
+                customer_dict['promised_amount'] = last_comment.amount_promised
+                customer_dict['follow_up_date'] = last_comment.follow_up_date
+                customer_dict['promised_date'] = last_comment.promised_date
+                if last_comment.sales_person:
+                    customer_dict['sales_person'] = Sales_Persons.objects.get(name=last_comment.sales_person).name
+                else:
+                    customer_dict['sales_person'] = ''
+                
+                # Determine the key date with follow_up_date taking priority
+                key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
+                if key_date and key_date <= current_date:
+                    key_str = current_date.strftime('%Y-%m-%d')  # Group under today's date if date is less than or equal to today
+                else:
+                    key_str = key_date.strftime('%Y-%m-%d') if key_date else 'unknown_date'
+                
+                if key_str in full_data:
+                    full_data[key_str].append(customer_dict)
+                else:
+                    full_data[key_str] = [customer_dict]
+        sorted_full_data = OrderedDict(sorted(full_data.items()))
+        # Return the ordered customers as JSON response
+        return JsonResponse({
+            'sales_data': data,
+            'sales': lis,
+            'full_data': sorted_full_data
+        }, safe=False)
 
 
 from django.http import JsonResponse
@@ -540,9 +575,13 @@ def get_pending_invoices(request):
             # Serialize the queryset
             customer_data = []
             for customer in customers:
+                customer_dict = InvoiceSerializer(customer).data
+                comments = Comments.objects.filter(user = customer_dict['user'], invoice = customer_dict['id'], promised_date__isnull=False, follow_up_date__isnull = False)
+                customer_dict['comments'] =CommentsSerializer(comments, many = True).data
                 # Filter unpaid invoices
                 unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
-                if len(unpaid_invoices) > 0:
+
+                if len(unpaid_invoices)>0 and len(comments) == 0:
                     customer_dict = InvoiceSerializer(customer).data
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
                     customer_data.append(customer_dict)

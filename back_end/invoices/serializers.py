@@ -15,7 +15,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['id','user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'paid', 'paid_date', 'sales_person']
+        fields = ['id','user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'sales_person']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value
@@ -58,6 +58,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return data
 
 class CustomerUpdateSerializer(serializers.Serializer):
+    user = serializers.CharField(max_length=100, allow_null=False)
     account = serializers.CharField(max_length=100, allow_null=True)
     promised_amount = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
     promised_date = serializers.DateField(allow_null=True)
