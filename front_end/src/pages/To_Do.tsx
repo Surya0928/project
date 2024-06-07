@@ -28,7 +28,7 @@ const To_DO: React.FC = () => {
   const [sales, setsales] = useState<string[]>([]);
   const [follow_up_date, setfollow_up_date] = useState<string>('');
   const [fullData, setFullData] = useState<DataByDate>({});
-  const [followUpTime, setFollowUpTime] = useState(''); 
+  const [followUpTime, setFollowUpTime] = useState<string>(''); 
   
   
   const [salesPersonMapping, setSalesPersonMapping] = useState<{ [key: number]: string }>({});
