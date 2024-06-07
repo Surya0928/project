@@ -494,7 +494,7 @@ def get_to_do_invoices(request):
             follow_up_date=Subquery(last_comment.values('follow_up_date')[:1]),
         ).filter(user=user_id)
         
-        full_data = {}
+        full_data = OrderedDict()
 
         # Iterate through customers to classify them based on follow_up_date or promised_date
         for customer in customers:
@@ -533,15 +533,10 @@ def get_to_do_invoices(request):
                 else:
                     full_data[key_str] = [customer_dict]
         
-        sorted_full_data = OrderedDict()
-        for key in sorted(full_data.keys()):
-            # Ensure follow_up_time is a comparable type, default to an empty string if it's None
-            sorted_full_data[key] = sorted(full_data[key], key=lambda x: x.get('follow_up_time') or '')
-
         return JsonResponse({
             'sales_data': sales_data,
             'sales': lis,
-            'full_data': sorted_full_data
+            'full_data': full_data
         }, safe=False)
     
 from django.http import JsonResponse
