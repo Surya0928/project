@@ -535,9 +535,6 @@ def get_to_do_invoices(request):
                     full_data[key_str] = [customer_dict]
         
         sorted_full_data = OrderedDict()
-        for key in sorted(full_data.keys()):
-            # Ensure follow_up_time is a comparable type, default to an empty string if it's None
-            sorted_full_data[key] = sorted(full_data[key], key=lambda x: x.get('follow_up_time') or '')
 
         return JsonResponse({
             'sales_data': sales_data,
