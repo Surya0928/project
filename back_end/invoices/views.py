@@ -474,16 +474,16 @@ from collections import OrderedDict
 def get_to_do_invoices(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        user_id = Users.objects.get(id=data.get('user_id'))
+        user_id = data.get('user_id')
         current_date = timezone.now().date()
         tomorrow = current_date + timedelta(days=1)
         
         # Subquery to get the promised_date and follow_up_date of the last comment for each customer
         last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk')).order_by('-id')
         lis = []
-        sales = Sales_Persons.objects
-        data = SalesPersonsSerializer(sales, many=True).data
-        for sale in data:
+        sales = Sales_Persons.objects.all()
+        sales_data = SalesPersonsSerializer(sales, many=True).data
+        for sale in sales_data:
             lis.append(sale['name'])
         
         # Get list of customers for the user
@@ -507,7 +507,7 @@ def get_to_do_invoices(request):
                 invoice=customer,
                 comment_paid=False,
             ).order_by('-id')
-            if len(comments)>0 and len(unpaid_invoices)>0:
+            if len(comments) > 0 and len(unpaid_invoices) > 0:
                 comments_data = CommentsSerializer(comments, many=True).data
                 customer_dict['comments'] = comments_data
                 last_comment = comments[0]
@@ -525,7 +525,7 @@ def get_to_do_invoices(request):
                 # Determine the key date with follow_up_date taking priority
                 key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
                 if key_date and key_date < current_date:
-                    key_str = 'Pending' # Group under today's date if date is less than or equal to today
+                    key_str = 'Pending'  # Group under today's date if date is less than or equal to today
                 else:
                     key_str = key_date.strftime('%Y-%m-%d') if key_date else 'unknown_date'
                 
@@ -533,17 +533,17 @@ def get_to_do_invoices(request):
                     full_data[key_str].append(customer_dict)
                 else:
                     full_data[key_str] = [customer_dict]
+        
         sorted_full_data = OrderedDict()
-
-
         for key in sorted(full_data.keys()):
+            # Ensure follow_up_time is a comparable type, default to an empty string if it's None
             sorted_full_data[key] = sorted(full_data[key], key=lambda x: x.get('follow_up_time') or '')
+
         return JsonResponse({
-            'sales_data': data,
+            'sales_data': sales_data,
             'sales': lis,
             'full_data': sorted_full_data
         }, safe=False)
-
 
 from django.http import JsonResponse
 from django.utils import timezone
