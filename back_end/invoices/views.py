@@ -534,8 +534,7 @@ def get_to_do_invoices(request):
                 else:
                     full_data[key_str] = [customer_dict]
         sorted_full_data = OrderedDict()
-        if 'Pending' in full_data:
-            sorted_full_data['Pending'] = sorted(full_data.pop('Pending'), key=lambda x: x.get('follow_up_time') or datetime.time.min)
+
 
         for key in sorted(full_data.keys()):
             sorted_full_data[key] = sorted(full_data[key], key=lambda x: x.get('follow_up_time') or '')
