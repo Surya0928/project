@@ -330,7 +330,7 @@ from rest_framework import status
 import json
 from .models import Users, Customers, Comments
 from .serializers import CommentsSerializer
-from datetime import datetime
+from datetime import date
 
 
 @api_view(['POST'])
@@ -340,15 +340,18 @@ def create_comment(request):
         user_id = Users.objects.get(id=data.get('user'))
         print(data.get('invoices_paid'))
         customer = Customers.objects.get(user=user_id, account=data.get('invoice'))
-        if data.get('invoice_list'):
-            for each in (data.get('invoice_list').split(', ')):
-                invoice = get_object_or_404(Invoice, ref_no=each, user = data.get('user'), invoice = customer.id)
-                # print(each, invoice)
+        if data.get('invoices_paid') == True:
+            if data.get('invoice_list'):
+                for each in (data.get('invoice_list').split(', ')):
+                    invoice = get_object_or_404(Invoice, ref_no=each, user = data.get('user'), invoice = customer.id)
+                    # print(each, invoice)
 
-            # Update the paid field of the comment
-                invoice.paid = data.get('invoices_paid')
-                invoice.paid_date = datetime.today().strftime('%Y-%m-%d')
-                invoice.save()
+                # Update the paid field of the comment
+                    invoice.paid = data.get('invoices_paid')
+                    invoice.paid_date = date.today().strftime('%Y-%m-%d')
+                    invoice.save()
+        else:
+            print('no')
         comment_data = {
             'user': user_id.id,
             'invoice': customer.id,
@@ -459,23 +462,33 @@ def get_paid_Invoice(request):
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
     
-from django.http import JsonResponse
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Subquery, OuterRef
-from .models import Customers, Comments
-from .serializers import InvoiceSerializer, CommentsSerializer
-from datetime import timedelta, date
 from collections import OrderedDict
-
+import json
+from django.utils import timezone
+from django.http import JsonResponse
+from django.db.models import OuterRef, Subquery
+import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 @api_view(['POST'])
-
 def get_to_do_invoices(request):
     if request.method == 'POST':
+        def add_ordinal_suffix(day):
+            if 11 <= day <= 13:
+                return f'{day}th'
+            suffixes = {1: 'st', 2: 'nd', 3: 'rd'}
+            return f'{day}{suffixes.get(day % 10, "th")}'
+        
+        def format_date(date):
+            day_with_suffix = add_ordinal_suffix(date.day)
+            formatted_date = date.strftime(f'{day_with_suffix} %B, %A')
+            return formatted_date
+
         data = json.loads(request.body)
         user_id = data.get('user_id')
-        current_date = timezone.now().date().isoformat()
+        current_date = timezone.now().date()
+        current_date_str = current_date.isoformat()
         
         # Subquery to get the promised_date and follow_up_date of the last comment for each customer
         last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk')).order_by('-id')
@@ -523,21 +536,25 @@ def get_to_do_invoices(request):
                 
                 # Determine the key date with follow_up_date taking priority
                 key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
-                if key_date and key_date < current_date:
-                    key_str = 'Pending'  # Group under 'Pending' if the date is less than or equal to today
+                if key_date:
+                    key_date_obj = datetime.datetime.strptime(key_date, '%Y-%m-%d').date()
+                    if key_date_obj <= current_date:
+                        key_str = 'Pending'
+                    else:
+                        key_str = format_date(key_date_obj)
                 else:
-                    key_str = key_date if key_date else 'unknown_date'
+                    key_str = 'unknown_date'
                 
                 if key_str in full_data:
                     full_data[key_str].append(customer_dict)
                 else:
                     full_data[key_str] = [customer_dict]
         
-        return JsonResponse({
+        return Response({
             'sales_data': sales_data,
             'sales': lis,
             'full_data': full_data
-        }, safe=False)
+        })
     
 from django.http import JsonResponse
 from django.utils import timezone
