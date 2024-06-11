@@ -469,9 +469,9 @@ from django.http import JsonResponse
 from django.db.models import OuterRef, Subquery
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from datetime import datetime as dt  # Rename the datetime module to avoid conflicts
 import datetime
-from .models import Users, Customers, Invoice, Comments, Sales_Persons
-from .serializers import SalesPersonsSerializer, InvoiceSerializer, InvoiceDetailSerializer, CommentsSerializer
+
 
 @api_view(['POST'])
 def get_to_do_invoices(request):
@@ -490,7 +490,6 @@ def get_to_do_invoices(request):
         data = json.loads(request.body)
         user_id = data.get('user_id')
         current_date = timezone.now().date()
-        current_date_str = current_date.isoformat()
         
         # Subquery to get the promised_date and follow_up_date of the last comment for each customer
         last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk')).order_by('-id')
@@ -525,12 +524,11 @@ def get_to_do_invoices(request):
                 comments_data = CommentsSerializer(comments, many=True).data
                 customer_dict['comments'] = comments_data
                 last_comment = comments[0]
-                #print(last_comment.sales_person)
                 customer_dict['invoice_list'] = last_comment.invoice_list
                 customer_dict['promised_amount'] = last_comment.amount_promised
-                customer_dict['follow_up_date'] = datetime.datetime.strptime(last_comment.follow_up_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.follow_up_date else None
+                customer_dict['follow_up_date'] = dt.strptime(last_comment.follow_up_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.follow_up_date else None
                 customer_dict['follow_up_time'] = last_comment.follow_up_time
-                customer_dict['promised_date'] = datetime.datetime.strptime(last_comment.promised_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.promised_date else None
+                customer_dict['promised_date'] = dt.strptime(last_comment.promised_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.promised_date else None
                 if last_comment.sales_person:
                     customer_dict['sales_person'] = Sales_Persons.objects.get(name=last_comment.sales_person).name
                 else:
@@ -539,9 +537,11 @@ def get_to_do_invoices(request):
                 # Determine the key date with follow_up_date taking priority
                 key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
                 if key_date:
-                    key_date_obj = datetime.datetime.strptime(key_date, '%d-%m-%Y').date()
-                    if key_date_obj <= current_date:
+                    key_date_obj = dt.strptime(key_date, '%d-%m-%Y').date()
+                    if key_date_obj < current_date:
                         key_str = 'Pending'
+                    elif key_date_obj == current_date:
+                        key_str = 'Today'
                     else:
                         key_str = format_date(key_date_obj)
                 else:
@@ -552,12 +552,38 @@ def get_to_do_invoices(request):
                 else:
                     full_data[key_str] = [customer_dict]
         
+        # Sort the data within each key by follow_up_date or promised_date and then by follow_up_time
+# Sort the data within each key by follow_up_date or promised_date and then by follow_up_time
+        for key, customers_list in full_data.items():
+            sorted_customers = sorted(customers_list, key=lambda x: (
+                dt.strptime(x['follow_up_date'], '%d-%m-%Y') if x['follow_up_date'] else (
+                    dt.strptime(x['promised_date'], '%d-%m-%Y') if x['promised_date'] else dt.max
+                ),
+                x['follow_up_time'] if x['follow_up_time'] else dt.min.time()  # Convert to datetime.time
+            ))
+            full_data[key] = sorted_customers
+
+
+        # Create an ordered full_data dictionary with the specified key order
+        ordered_full_data = OrderedDict()
+        for key in ['Pending', 'Today']:
+            if key in full_data:
+                ordered_full_data[key] = full_data.pop(key)
+        
+        # Sort the remaining date keys and add them to the ordered_full_data
+        sorted_date_keys = sorted(full_data.keys(), key=lambda x: (
+            datetime.datetime.strptime(x, '%dth %B, %A') if x != 'unknown_date' else datetime.datetime.max
+        ))
+
+        for key in sorted_date_keys:
+            ordered_full_data[key] = full_data[key]
+
         return Response({
             'sales_data': sales_data,
             'sales': lis,
-            'full_data': full_data
+            'full_data': ordered_full_data
         })
-    
+
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
@@ -589,10 +615,7 @@ def get_pending_invoices(request):
             ).filter(user = user_id)
 
             # Filter customers where there are no comments or last_promised_date is less than yesterday
-            customers = customers.filter((Q(last_promised_date__lt=yesterday) | Q(last_promised_date__isnull=True)) & (Q(follow_up_date__lt=yesterday) | Q(follow_up_date__isnull=True)))
-
-            # Order the customers with last_promised_date < yesterday at the top and others at the bottom
-            customers = customers.annotate(is_old=Case(When(last_promised_date__lt=yesterday, then=Value(1)), default=Value(0), output_field=IntegerField())).order_by('-is_old', '-over_due')
+            customers = customers.filter(Q(last_promised_date__isnull=True) & Q(follow_up_date__isnull=True))
 
 
             # Serialize the queryset
