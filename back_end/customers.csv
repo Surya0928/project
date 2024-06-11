@@ -1,0 +1,10 @@
+id,user,account,phone_number,name,optimal_due,threshold_due,over_due,total_due,invoices,promised_amount,promised_date,premium_user
+4951,Users object (2),A,9652427433,Surya,500.00,0.00,0.00,500.00,1.0,0.00,,False
+4952,Users object (2),B,9652427433,PrithVI,5000.00,2408.00,0.00,7408.00,2.0,0.00,,False
+4953,Users object (2),C,9652427433,He,0.00,18638.00,0.00,18638.00,1.0,0.00,,False
+4954,Users object (2),D,9652427433,if,0.00,119750.00,0.00,119750.00,1.0,0.00,,False
+4955,Users object (2),W,9652427433,IR,0.00,1.00,0.00,1.00,1.0,0.00,,False
+4956,Users object (2),E,9652427433,NJE,0.00,60000.00,0.00,60000.00,1.0,0.00,,False
+4957,Users object (2),F,9652427433,HI,37302.00,0.00,0.00,37302.00,1.0,0.00,,False
+4958,Users object (2),H,9652427433,HW,43125.00,0.00,0.00,43125.00,1.0,0.00,,False
+4959,Users object (2),T,9652427433,WH,56875.00,0.00,0.00,56875.00,1.0,0.00,,False

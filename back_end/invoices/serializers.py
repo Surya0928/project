@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Users, Customers, Invoice, Comments, Sales_Persons
+from datetime import datetime
 
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,7 +16,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comments
-        fields = ['id','user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'sales_person', 'comment_paid', 'follow_up_time']
+        fields = ['id', 'user', 'invoice', 'date', 'invoice_list', 'remarks', 'amount_promised', 'follow_up_date', 'promised_date', 'sales_person', 'comment_paid', 'follow_up_time']
 
     def create(self, validated_data):
         # Extract and handle the invoice string value
@@ -28,19 +29,33 @@ class CommentsSerializer(serializers.ModelSerializer):
             validated_data['invoice'] = customer
         return super().create(validated_data)
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        date_fields = ['date', 'follow_up_date', 'promised_date']
+        for field in date_fields:
+            if data[field]:
+                data[field] = datetime.strptime(data[field], '%Y-%m-%d').strftime('%d-%m-%Y')
+        return data
 
 class CustomersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customers
-        fields = ['account','user', 'phone_number']
+        fields = ['account', 'user', 'phone_number']
 
 class InvoiceDetailSerializer(serializers.ModelSerializer):
     invoice = CustomersSerializer(read_only=True)
 
     class Meta:
         model = Invoice
-        fields = ['id','user', 'invoice', 'date', 'ref_no', 'pending', 'due_on', 'days_passed', 'paid', 'paid_date', 'sales_person']
+        fields = ['id', 'user', 'invoice', 'date', 'ref_no', 'pending', 'due_on', 'days_passed', 'paid', 'paid_date', 'sales_person']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        date_fields = ['date', 'due_on', 'paid_date']
+        for field in date_fields:
+            if data[field]:
+                data[field] = datetime.strptime(data[field], '%Y-%m-%d').strftime('%d-%m-%Y')
+        return data
 
 class InvoiceSerializer(serializers.ModelSerializer):
     invoice_details = InvoiceDetailSerializer(many=True, read_only=True)
@@ -48,13 +63,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customers
-        fields = ('id','user', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due','promised_amount', 'promised_date' , 'invoices', 'invoice_details', 'comments' )
+        fields = ['id', 'user', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due', 'promised_amount', 'promised_date', 'invoices', 'invoice_details', 'comments']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         comments = Comments.objects.filter(invoice__account=instance.account)
         comments_data = CommentsSerializer(comments, many=True).data
         data['comments'] = comments_data
+        if data['promised_date']:
+            data['promised_date'] = datetime.strptime(data['promised_date'], '%Y-%m-%d').strftime('%d-%m-%Y')
         return data
 
 class CustomerUpdateSerializer(serializers.Serializer):
@@ -75,7 +92,7 @@ class CustomerUpdateSerializer(serializers.Serializer):
         # Save the instance after all updates
         instance.save()
         return instance
-    
+
 class SalesPersonsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sales_Persons

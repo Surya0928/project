@@ -31,7 +31,7 @@ class Sales_Persons(models.Model):
     email = models.EmailField(max_length=100, null = True, blank=True)
     
     def __str__(self):
-        return self.name
+        return self.name if self.name else ''
     
 class Invoice(models.Model):
     user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='invoice_user', default=None)

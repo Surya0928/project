@@ -29,7 +29,7 @@ def get_all_invoices(request):
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
         customers = Customers.objects.filter(user = user_id)
-        # print(customers)
+        #print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
             customers = Customers.objects.annotate(
@@ -48,7 +48,7 @@ def get_all_invoices(request):
 
             # Order the customers
             customers = customers.order_by('premium_user_order', '-over_due', 'last_promised_date', 'id')
-            # print(customers)
+            #print(customers)
             # Serialize the queryset
             customer_data = []
             for customer in customers:
@@ -161,10 +161,10 @@ def update_csv_file_format(csv_data):
         # Convert DataFrame back to CSV data (as bytes)
         updated_csv_data = df.to_csv(index=False).encode('utf-8')
 
-        print("CSV data updated successfully")
+        #print("CSV data updated successfully")
         return updated_csv_data
     except Exception as e:
-        print("Error updating CSV data:", e)
+        #print("Error updating CSV data:", e)
         raise e  # Reraise the exception to propagate it to the caller
 
 @csrf_exempt
@@ -259,7 +259,7 @@ def import_data_from_csv(df, user_id):
                 if not phone_number_found and pd.notna(each['phone_number']):
                     phone_number = each['phone_number']
                     phone_number_found = True
-        print(account, 1, name, phone_number)
+        #print(account, 1, name, phone_number)
         invoice, created = Customers.objects.using('default').update_or_create(
             account=account,
             user=user_instance,  # Pass user_id to the model
@@ -311,7 +311,7 @@ class CustomerUpdateAPIView(APIView):
     def post(self, request):
         serializer = CustomerUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            print(serializer.validated_data)
+            #print(serializer.validated_data)
             account = serializer.validated_data['account']
             user = serializer.validated_data['user']
             user_instance = Users.objects.get(id=user)
@@ -338,20 +338,20 @@ def create_comment(request):
     try:
         data = json.loads(request.body)
         user_id = Users.objects.get(id=data.get('user'))
-        print(data.get('invoices_paid'))
+        #print(data.get('invoices_paid'))
         customer = Customers.objects.get(user=user_id, account=data.get('invoice'))
         if data.get('invoices_paid') == True:
             if data.get('invoice_list'):
                 for each in (data.get('invoice_list').split(', ')):
                     invoice = get_object_or_404(Invoice, ref_no=each, user = data.get('user'), invoice = customer.id)
-                    # print(each, invoice)
+                    #print(each, invoice)
 
                 # Update the paid field of the comment
                     invoice.paid = data.get('invoices_paid')
                     invoice.paid_date = date.today().strftime('%Y-%m-%d')
                     invoice.save()
-        else:
-            print('no')
+        # else:
+            ##print('no')
         comment_data = {
             'user': user_id.id,
             'invoice': customer.id,
@@ -367,9 +367,9 @@ def create_comment(request):
         }
 
         serializer = CommentsSerializer(data=comment_data)
-        print(serializer)
+        #print(serializer)
         if serializer.is_valid():
-            print(serializer.validated_data)
+            #print(serializer.validated_data)
             comment = Comments.objects.create(
                 user=user_id,
                 invoice=customer,
@@ -409,7 +409,7 @@ def get_all_comments(request):
     user_id = Users.objects.get(id=data.get('user_id'))
     # Filter comments based on provided parameters
     comments_queryset = Comments.objects.filter(user = user_id)
-    print(comments_queryset)
+    #print(comments_queryset)
 
     # Serialize filtered queryset
     serializer = CommentsSerializer(comments_queryset, many=True)
@@ -435,7 +435,7 @@ def get_paid_Invoice(request):
         # Subquery to get the promised_date of the last comment for each customer
 
         customers = Customers.objects.filter(user = user_id)
-        # print(customers)
+        #print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
             customer_data = []
@@ -447,7 +447,7 @@ def get_paid_Invoice(request):
                 for each in invoices:
                     paid_amount += each.pending
                 if len(invoices) > 0:
-                    customer_dict['last_payment_date'] = invoices[0].paid_date
+                    customer_dict['last_payment_date'] = datetime.datetime.strptime(str(invoices[0].paid_date) , '%Y-%m-%d').strftime('%d-%m-%Y')
                     customer_dict['amount_paid'] = paid_amount
                     customer_dict['number_of_invoices'] = len(invoices)
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
@@ -467,9 +467,11 @@ import json
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db.models import OuterRef, Subquery
-import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+import datetime
+from .models import Users, Customers, Invoice, Comments, Sales_Persons
+from .serializers import SalesPersonsSerializer, InvoiceSerializer, InvoiceDetailSerializer, CommentsSerializer
 
 @api_view(['POST'])
 def get_to_do_invoices(request):
@@ -523,12 +525,12 @@ def get_to_do_invoices(request):
                 comments_data = CommentsSerializer(comments, many=True).data
                 customer_dict['comments'] = comments_data
                 last_comment = comments[0]
-                print(last_comment.sales_person)
+                #print(last_comment.sales_person)
                 customer_dict['invoice_list'] = last_comment.invoice_list
                 customer_dict['promised_amount'] = last_comment.amount_promised
-                customer_dict['follow_up_date'] = last_comment.follow_up_date.isoformat() if last_comment.follow_up_date else None
+                customer_dict['follow_up_date'] = datetime.datetime.strptime(last_comment.follow_up_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.follow_up_date else None
                 customer_dict['follow_up_time'] = last_comment.follow_up_time
-                customer_dict['promised_date'] = last_comment.promised_date.isoformat() if last_comment.promised_date else None
+                customer_dict['promised_date'] = datetime.datetime.strptime(last_comment.promised_date.isoformat(), '%Y-%m-%d').strftime('%d-%m-%Y') if last_comment.promised_date else None
                 if last_comment.sales_person:
                     customer_dict['sales_person'] = Sales_Persons.objects.get(name=last_comment.sales_person).name
                 else:
@@ -537,7 +539,7 @@ def get_to_do_invoices(request):
                 # Determine the key date with follow_up_date taking priority
                 key_date = customer_dict['follow_up_date'] or customer_dict['promised_date']
                 if key_date:
-                    key_date_obj = datetime.datetime.strptime(key_date, '%Y-%m-%d').date()
+                    key_date_obj = datetime.datetime.strptime(key_date, '%d-%m-%Y').date()
                     if key_date_obj <= current_date:
                         key_str = 'Pending'
                     else:
@@ -638,15 +640,15 @@ def update_invoice_sales_person(request):
         for each in sales_data:
             ref_no = each[0]
             sales_person_name = each[1]
-            print(f"Ref No: {ref_no}, Sales Person Name: {sales_person_name}")
+            #print(f"Ref No: {ref_no}, Sales Person Name: {sales_person_name}")
 
             person = get_object_or_404(Invoice,user=user_id, ref_no=ref_no)
             sales_person_instance = get_object_or_404(Sales_Persons, name=sales_person_name)
-            print(f"Fetched Sales Person: {sales_person_instance}")
+            #print(f"Fetched Sales Person: {sales_person_instance}")
 
             person.sales_person = sales_person_instance
             person.save()
-            print(person.sales_person)
+            #print(person.sales_person)
 
         return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
 
@@ -668,7 +670,7 @@ def login(request):
         users = Users.objects.filter(username=username)
         if len(users) > 0:
             if users[0].password == password:
-                print('yes')
+                #print(''yes')
                 return JsonResponse({'id': users[0].id, 'username': users[0].username})
             
         return JsonResponse({'error': 'Incorrect password'}, status=400)
@@ -691,3 +693,94 @@ def create_sales(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+import csv
+from django.http import HttpResponse
+from django.core.management.base import BaseCommand
+
+def export_to_csv(model_class, file_path):
+    # Open or create the CSV file
+    with open(file_path, 'w', newline='') as csvfile:
+        # Get the field names from the model
+        field_names = [field.name for field in model_class._meta.fields]
+        
+        # Create a CSV writer
+        writer = csv.writer(csvfile)
+        
+        # Write the header row
+        writer.writerow(field_names)
+        
+        # Write data rows
+        for instance in model_class.objects.all():
+            writer.writerow([getattr(instance, field) for field in field_names])
+    
+    #print('f'Data exported successfully to {file_path}')
+
+# export_to_csv(Sales_Persons, 'sales_persons.csv')
+
+
+import csv
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.dateparse import parse_date, parse_datetime
+from .serializers import UsersSerializer
+
+
+def import_from_csv(model_class, file_path):
+    # Open the CSV file
+    with open(file_path, newline='') as csvfile:
+        # Create a CSV reader
+        reader = csv.DictReader(csvfile)
+        
+        for row in reader:
+            # Create a dictionary to hold the field values
+            if model_class == Users:
+                user_values = {}
+                for field in model_class._meta.fields:
+                    field_name = field.name
+                    field_value = row[field_name]
+                    user_values[field_name]= field_value
+                users = {
+                    'username' : user_values['username'] or '',
+                    'password' : user_values['password'] or '',
+                    'address' : user_values['address'] or '',
+                    'role' : user_values['role'] or ''
+                }
+
+                serializer = UsersSerializer(data=users)
+                #print('serializer, 2)
+                if serializer.is_valid():
+                    #print('serializer.validated_data, 1)
+                    user = Users.objects.create(
+                        username = serializer.validated_data.get('username'),
+                        password = serializer.validated_data.get('password'),
+                        address = serializer.validated_data.get('address'),
+                        role = serializer.validated_data.get('role'),
+                    )
+                    # return Response(UsersSerializer(user).data, status=status.HTTP_201_CREATED)
+            if model_class == Sales_Persons:
+                sales_values = {}
+                for field in model_class._meta.fields:
+                    field_name = field.name
+                    field_value = row[field_name]
+                    sales_values[field_name]= field_value
+                    #print('sales_values)
+                sales = {
+                    'name' : sales_values['name'] or '',
+                    'phone_number' : sales_values['phone_number'] or '',
+                    'address' : sales_values['address'] or '',
+                    'email' : sales_values['email'] or ''
+                }
+
+                serializer = SalesPersonsSerializer(data=sales)
+                #print('serializer, 2)
+                if serializer.is_valid():
+                    #print('serializer.validated_data, 1)
+                    sale = Sales_Persons.objects.create(
+                        name = serializer.validated_data.get('name'),
+                        phone_number = serializer.validated_data.get('phone_number'),
+                        address = serializer.validated_data.get('address'),
+                        email = serializer.validated_data.get('email'),
+                    )
+                    # return Response(SalesPersonsSerializer(sale).data, status=status.HTTP_201_CREATED)
+
