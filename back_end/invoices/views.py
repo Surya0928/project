@@ -572,8 +572,9 @@ def get_to_do_invoices(request):
         
         # Sort the remaining date keys and add them to the ordered_full_data
         sorted_date_keys = sorted(full_data.keys(), key=lambda x: (
-            datetime.datetime.strptime(x, '%dth %B, %A') if x != 'unknown_date' else datetime.datetime.max
+            datetime.datetime.strptime(x, '%d %B, %A') if x != 'unknown_date' else datetime.datetime.max
         ))
+
 
         for key in sorted_date_keys:
             ordered_full_data[key] = full_data[key]
@@ -604,7 +605,7 @@ def get_pending_invoices(request):
         for sale in data:
             lis.append(sale['name'])
         # Subquery to get the promised_date of the last comment for each customer
-        last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk')).order_by('-id')
+        last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk'), comment_paid=False).order_by('-id')
         customers = Customers.objects.filter(user=user_id)
         # Annotate customers with the promised_date of the last comment
         if len(customers) > 0:
@@ -627,7 +628,7 @@ def get_pending_invoices(request):
                 # Filter unpaid invoices
                 unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
 
-                if len(unpaid_invoices)>0 and len(comments) == 0:
+                if len(unpaid_invoices)>0 :
                     customer_dict = InvoiceSerializer(customer).data
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
                     customer_data.append(customer_dict)
