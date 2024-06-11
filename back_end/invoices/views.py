@@ -471,6 +471,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from datetime import datetime as dt  # Rename the datetime module to avoid conflicts
 import datetime
+import re
+
 
 
 @api_view(['POST'])
@@ -572,8 +574,11 @@ def get_to_do_invoices(request):
         
         # Sort the remaining date keys and add them to the ordered_full_data
         sorted_date_keys = sorted(full_data.keys(), key=lambda x: (
-            datetime.datetime.strptime(x, '%d %B, %A') if x != 'unknown_date' else datetime.datetime.max
+            datetime.datetime.strptime(re.sub(r'\b(\d+)(st|nd|rd|th)\b', r'\1', x), '%d %B, %A') 
+            if x != 'unknown_date' 
+            else datetime.datetime.max
         ))
+
 
 
         for key in sorted_date_keys:
