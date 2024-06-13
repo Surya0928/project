@@ -746,7 +746,11 @@ def export_to_csv(model_class, file_path):
     
     #print('f'Data exported successfully to {file_path}')
 
-# export_to_csv(Sales_Persons, 'sales_persons.csv')
+export_to_csv(Sales_Persons, 'sales_persons.csv')
+export_to_csv(Users, 'users.csv')
+export_to_csv(Customers, 'customers.csv')
+export_to_csv(Comments, 'comments.csv')
+export_to_csv(Invoice, 'invoices.csv')
 
 
 import csv
