@@ -109,15 +109,14 @@ def update_invoice_paid_status(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-import csv
-from io import TextIOWrapper, BytesIO
-from datetime import datetime
 import pandas as pd
+from datetime import datetime as dt
+from io import BytesIO
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db import transaction
-from invoices.models import Customers, Invoice
+from .models import Users, Customers, Invoice  # Adjust the import based on your actual project structure
 
 def update_csv_file_format(csv_data):
     try:
@@ -146,7 +145,7 @@ def update_csv_file_format(csv_data):
         df = df.dropna(subset=['due_date'])
 
         # Convert today's date to pandas Timestamp (to match 'due_date' datatype)
-        today = pd.Timestamp(datetime.today().date())
+        today = pd.Timestamp(dt.today().date())
 
         # Calculate number of days passed from due date to today
         df['days_passed'] = (today - df['due_date']).dt.days
@@ -161,15 +160,12 @@ def update_csv_file_format(csv_data):
         # Convert DataFrame back to CSV data (as bytes)
         updated_csv_data = df.to_csv(index=False).encode('utf-8')
 
-        #print("CSV data updated successfully")
         return updated_csv_data
     except Exception as e:
-        #print("Error updating CSV data:", e)
         raise e  # Reraise the exception to propagate it to the caller
 
 @csrf_exempt
 @require_POST
-
 @transaction.atomic
 def process_uploaded_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -177,7 +173,6 @@ def process_uploaded_csv(request):
         
         # Retrieve user_id from request
         user_id = int(request.POST.get('user_id'))
-
 
         try:
             # Step 1: Read the content of the CSV file
@@ -201,6 +196,7 @@ def process_uploaded_csv(request):
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
+
 @csrf_exempt
 @require_POST
 def process_update_csv(request):
@@ -223,9 +219,6 @@ def process_update_csv(request):
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
 
-import pandas as pd
-from django.db.models import F
-
 def import_data_from_csv(df, user_id):
     unique_list = df['party_name'].unique().tolist()
     user_instance = Users.objects.get(id=user_id)
@@ -240,7 +233,8 @@ def import_data_from_csv(df, user_id):
         # Initialize flags to check for non-empty values
         name_found = False
         phone_number_found = False
-
+        customer = Customers.objects.get(account=account)
+    
         for _, each in df.iterrows():
             if each['party_name'] == company:
                 invoices += 1
@@ -255,50 +249,73 @@ def import_data_from_csv(df, user_id):
                 if not name_found and pd.notna(each['name']):
                     name = each['name']
                     name_found = True
+                else:
+                    name = customer.name
+
 
                 if not phone_number_found and pd.notna(each['phone_number']):
                     phone_number = each['phone_number']
                     phone_number_found = True
-        #print(account, 1, name, phone_number)
-        invoice, created = Customers.objects.using('default').update_or_create(
+                else:
+                    phone_number = customer.phone_number
+
+        defaults = {
+            'optimal_due': round(optimal_due),
+            'threshold_due': round(threshold_due),
+            'over_due': round(over_due),
+            'total_due': round(total_due),
+            'invoices': invoices,
+            'promised_date': customer.promised_date if customer.promised_date else None,
+            'promised_amount': customer.promised_amount if customer.promised_amount else 0.0,
+            'name': name if name else None,
+            'phone_number': phone_number if phone_number else None
+        }
+
+        customer, created = Customers.objects.using('default').update_or_create(
             account=account,
-            user=user_instance,  # Pass user_id to the model
-            defaults={
-                'optimal_due': round(optimal_due),
-                'threshold_due': round(threshold_due),
-                'over_due': round(over_due),
-                'total_due': round(total_due),
-                'invoices': invoices,
-                'promised_date': None,
-                'promised_amount': 0.0,
-                'name': name,
-                'phone_number': phone_number,
-            }
+            user=user_instance,  # Pass user_instance to the model
+            defaults=defaults
         )
+
+        # Retrieve existing customer and update only non-empty fields
+        if not created:
+            for field, value in defaults.items():
+                if value is not None:
+                    setattr(customer, field, value)
+            customer.save()
 
     for _, row in df.iterrows():
         try:
-            customer = Customers.objects.using('default').get(account=row['party_name'], user=user_id)
+            customer = Customers.objects.using('default').get(account=row['party_name'], user=user_instance)
         except Customers.DoesNotExist:
             continue
 
         try:
-            date = datetime.strptime(row['invoice_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
-            due_on = datetime.strptime(row['due_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
+            date = dt.strptime(row['invoice_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
+            due_on = dt.strptime(row['due_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
         except ValueError:
             continue
 
-        Invoice.objects.using('default').update_or_create(
-            user=user_instance,  # Pass user_id to the model
+        invoice_defaults = {
+            'date': date,
+            'pending': float(row['pending_amount']),
+            'due_on': due_on,
+            'days_passed': int(row['days_passed']),
+        }
+
+        invoice, created = Invoice.objects.using('default').update_or_create(
+            user=user_instance,  # Pass user_instance to the model
             invoice=customer,
             ref_no=row['ref_no'],
-            defaults={
-                'date': date,
-                'pending': float(row['pending_amount']),
-                'due_on': due_on,
-                'days_passed': int(row['days_passed']),
-            }
+            defaults=invoice_defaults
         )
+
+        # Retrieve existing invoice and update only non-empty fields
+        if not created:
+            for field, value in invoice_defaults.items():
+                if value is not None:
+                    setattr(invoice, field, value)
+            invoice.save()
 
 
 from rest_framework import status
@@ -750,7 +767,7 @@ export_to_csv(Sales_Persons, 'sales_persons.csv')
 export_to_csv(Users, 'users.csv')
 export_to_csv(Customers, 'customers.csv')
 export_to_csv(Comments, 'comments.csv')
-export_to_csv(Invoice, 'invoices.csv')
+export_to_csv(Invoice, 'comments.csv')
 
 
 import csv
