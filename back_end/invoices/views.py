@@ -857,7 +857,7 @@ def create_existing_names():
                 print(f"Validated data: {serializer.validated_data}")
                 name = Name.objects.create(
                     user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
-                    invoice = get_object_or_404(Customers,id =serializer.validated_data.get('user'),   account = serializer.validated_data.get('invoice')),
+                    invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
                     name = serializer.validated_data.get('name'),
                     phone_number = serializer.validated_data.get('phone_number'),
                     
