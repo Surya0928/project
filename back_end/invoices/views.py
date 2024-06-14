@@ -834,37 +834,37 @@ def import_from_csv(model_class, file_path):
                     )
                     # return Response(SalesPersonsSerializer(sale).data, status=status.HTTP_201_CREATED)
 
-from .serializers import NameSerializer
+# from .serializers import NameSerializer
 
-def create_existing_names():
-    customers = Customers.objects.all()
-    for customer in customers:
-        if customer.name and customer.phone_number:
-            print(f"Processing customer: {customer}")
+# def create_existing_names():
+#     customers = Customers.objects.all()
+#     for customer in customers:
+#         if customer.name and customer.phone_number:
+#             print(f"Processing customer: {customer}")
 
-            row = {
-                'user': customer.user.id,  # Use the user's ID
-                'invoice': customer.account,  # Use the customer's ID
-                'name': customer.name,
-                'phone_number': customer.phone_number
-            }
+#             row = {
+#                 'user': customer.user.id,  # Use the user's ID
+#                 'invoice': customer.account,  # Use the customer's ID
+#                 'name': customer.name,
+#                 'phone_number': customer.phone_number
+#             }
 
-            serializer = NameSerializer(data=row)
-            print(f"Serializer data: {serializer}")
+#             serializer = NameSerializer(data=row)
+#             print(f"Serializer data: {serializer}")
 
-            if serializer.is_valid():
-            #     print("Serializer is valid")
-                print(f"Validated data: {serializer.validated_data}")
-                name = Name.objects.create(
-                    user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
-                    invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
-                    name = serializer.validated_data.get('name'),
-                    phone_number = serializer.validated_data.get('phone_number'),
+#             if serializer.is_valid():
+#             #     print("Serializer is valid")
+#                 print(f"Validated data: {serializer.validated_data}")
+#                 name = Name.objects.create(
+#                     user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
+#                     invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
+#                     name = serializer.validated_data.get('name'),
+#                     phone_number = serializer.validated_data.get('phone_number'),
                     
-                )
-            #     serializer.save()  # Save the validated data to create the Name instance
-            # else:
-            #     print("Serializer errors:")
-            #     print(serializer.errors)  # Print the errors if validation fails
+#                 )
+#             #     serializer.save()  # Save the validated data to create the Name instance
+#             # else:
+#             #     print("Serializer errors:")
+#             #     print(serializer.errors)  # Print the errors if validation fails
 
-create_existing_names()
+# create_existing_names()
