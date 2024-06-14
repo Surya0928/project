@@ -868,3 +868,37 @@ def import_from_csv(model_class, file_path):
 #             #     print(serializer.errors)  # Print the errors if validation fails
 
 # create_existing_names()
+
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import Name
+from .serializers import NameSerializer
+
+@api_view(['POST'])
+def create_customer_name(request):
+    data = json.loads(request.body)
+    user = get_object_or_404(Users, id = data.get('user')).id
+    invoice = get_object_or_404(Customers, user = data.get('user'), account = data.get('invoice')).account
+    name = data.get('name')
+    phone_number = data.get('phone_number')
+
+    form = {
+        'user': user,
+        'invoice': invoice,
+        'name': name,
+        'phone_number': phone_number,
+
+    }
+    serializer = NameSerializer(data=request.data)
+    if serializer.is_valid():
+        name = Name.objects.create(
+            user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
+            invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
+            name = serializer.validated_data.get('name'),
+            phone_number = serializer.validated_data.get('phone_number'),
+            
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

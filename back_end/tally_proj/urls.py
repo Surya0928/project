@@ -10,6 +10,7 @@ urlpatterns = [
     path('update-customer/', views.CustomerUpdateAPIView.as_view(), name='update_customer'),
     path('create-comment/', views.create_comment, name='create-comment'),
     path('create-sales/', views.create_sales, name='create-sales'),
+    path('create_customer_name/', views.create_customer_name, name='create_customer_name'),
     path('comments/', views.get_all_comments, name='get_all_comments'),
     path('invoice_paid/', views.update_invoice_paid_status, name='update_invoice_paid_status'),
     path('paid_invoices/', views.get_paid_Invoice, name='get_paid_invoices'),

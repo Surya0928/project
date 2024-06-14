@@ -10,7 +10,7 @@ const Login: React.FC = () => {
   const { user_id, setuser_id, username, setusername } = useAppContext();
   const Login = async () => {
     try {
-        const response = await fetch('http://165.232.188.250:8080/login/', {
+        const response = await fetch('http://127.0.0.1:8000/login/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
