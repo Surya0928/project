@@ -1,6 +1,9 @@
 id,username,password,address,role
-1,surya@solvitdigital.co,SolviT@45,"Vijayawada, Ap",Editor
-2,accounts.bionic,Arun1234,"Vijayawada, Ap",Assistant Accountant
-4,TestBoy,TestPas,"Vijayawada, Ap",Testing
-5,test_sample,test_password,"Vijayawada, Ap",Testing
-6,Ac.bionic,Bionic1234,"Vijayawada, Ap",Accountant
+1,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor
+2,sop,pos,12,aw
+3,ae,be,ce,de
+4,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor
+5,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor
+6,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor
+7,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor
+8,surya@solvitdigital.co,SolviT@45,"40-9-43B, Sainivas apt",Editor

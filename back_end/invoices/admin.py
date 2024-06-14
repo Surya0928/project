@@ -1,7 +1,7 @@
 # invoices/admin.py
 
 from django.contrib import admin
-from .models import Customers, Invoice, Comments, Sales_Persons, Users, Name
+from .models import Customers, Invoice, Comments, Sales_Persons, Users
 
 
 @admin.register(Users)
@@ -24,7 +24,7 @@ class InvoiceDetailAdmin(admin.ModelAdmin):
 class InvoiceCommentAdmin(admin.ModelAdmin):
     search_fields = ['date']
 
-@admin.register(Name)
-class InvoiceNameAdmin(admin.ModelAdmin):
-    search_fields = ['name', 'invoice', 'phone_number']
+# @admin.register(Name)
+# class InvoiceNameAdmin(admin.ModelAdmin):
+#     search_fields = ['name', 'invoice', 'phone_number']
     
