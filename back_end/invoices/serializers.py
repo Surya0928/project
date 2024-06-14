@@ -1,6 +1,14 @@
 from rest_framework import serializers
-from .models import Users, Customers, Invoice, Comments, Sales_Persons
+from .models import Users, Customers, Invoice, Comments, Sales_Persons, Name
 from datetime import datetime
+
+
+class NameSerializer(serializers.ModelSerializer):
+    invoice = serializers.CharField(max_length=100)  # Use CharField for account (invoice) string
+    user = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = Name
+        fields = ['id', 'user', 'invoice', 'name', 'phone_number']
 
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:

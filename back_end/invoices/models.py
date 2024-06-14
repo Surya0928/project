@@ -65,3 +65,12 @@ class Comments(models.Model):
 
     def _str_(self):
         return f"{self.invoice}"
+    
+class Name(models.Model):
+    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='name_user', default=None)
+    invoice = models.ForeignKey(Customers, on_delete=models.CASCADE, related_name='name_customer', default=None)
+    name = models.CharField(max_length=200, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+
+    def _str_(self):
+        return f"{self.invoice}"
