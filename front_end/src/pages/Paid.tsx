@@ -31,7 +31,7 @@ const Paid: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/paid_invoices/', {
+      const response = await fetch('http://165.232.188.250:8080/paid_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const Paid: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
