@@ -51,12 +51,17 @@ def get_all_invoices(request):
             #print(customers)
             # Serialize the queryset
             customer_data = []
+
             for customer in customers:
                 # Filter unpaid invoices
+                named = Name.objects.filter(user = user_id, invoice = customer)
+                names = NameSerializer(named, many = True).data
+                #     name_dic[name.id] = [name.name, name.phone_number]
                 customer_dict = InvoiceSerializer(customer).data
                 comments = Comments.objects.filter(user = customer_dict['user'], invoice = customer_dict['id'])
                 customer_dict['comments'] =CommentsSerializer(comments, many = True).data
-                invoices = Invoice.objects.filter(user = user_id , invoice=customer).order_by('date', 'id')
+                customer_dict['names'] = names
+                invoices = Invoice.objects.filter(user = user_id , invoice=customer, old = False, new = False).order_by('date', 'id')
                 if len(invoices) > 0:
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
                 else:
@@ -227,14 +232,17 @@ def import_data_from_csv(df, user_id):
         account = company
         name = ''
         phone_number = ''
-        
+
         invoices, total_due, optimal_due, threshold_due, over_due = 0.0, 0.0, 0.0, 0.0, 0.0
 
         # Initialize flags to check for non-empty values
         name_found = False
         phone_number_found = False
-        customer = Customers.objects.get(account=account)
-    
+        customer = Customers.objects.filter(user=user_instance, account=account)
+
+        # Track invoices from the CSV
+        csv_invoice_refs = set()
+
         for _, each in df.iterrows():
             if each['party_name'] == company:
                 invoices += 1
@@ -249,15 +257,16 @@ def import_data_from_csv(df, user_id):
                 if not name_found and pd.notna(each['name']):
                     name = each['name']
                     name_found = True
-                else:
-                    name = customer.name
-
+                elif len(customer) > 0:
+                    name = customer[0].name
 
                 if not phone_number_found and pd.notna(each['phone_number']):
                     phone_number = each['phone_number']
                     phone_number_found = True
-                else:
-                    phone_number = customer.phone_number
+                elif len(customer) > 0:
+                    phone_number = customer[0].phone_number
+
+                csv_invoice_refs.add(each['ref_no'])
 
         defaults = {
             'optimal_due': round(optimal_due),
@@ -265,8 +274,8 @@ def import_data_from_csv(df, user_id):
             'over_due': round(over_due),
             'total_due': round(total_due),
             'invoices': invoices,
-            'promised_date': customer.promised_date if customer.promised_date else None,
-            'promised_amount': customer.promised_amount if customer.promised_amount else 0.0,
+            'promised_date': customer[0].promised_date if len(customer) > 0 else None,
+            'promised_amount': customer[0].promised_amount if len(customer) > 0 else 0.0,
             'name': name if name else None,
             'phone_number': phone_number if phone_number else None
         }
@@ -284,38 +293,49 @@ def import_data_from_csv(df, user_id):
                     setattr(customer, field, value)
             customer.save()
 
-    for _, row in df.iterrows():
-        try:
-            customer = Customers.objects.using('default').get(account=row['party_name'], user=user_instance)
-        except Customers.DoesNotExist:
-            continue
+        for _, row in df.iterrows():
+            if row['party_name'] == company:
+                try:
+                    date = dt.strptime(row['invoice_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
+                    due_on = dt.strptime(row['due_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
+                except ValueError:
+                    continue
+                
+                new = False
+                new_invo = Invoice.objects.filter(user = user_instance, invoice = customer, ref_no = row['ref_no'], new= False, old=False)
+                if len(new_invo) == 0:
+                    new = True
+                
+                invoice_defaults = {
+                    'date': date,
+                    'pending': float(row['pending_amount']),
+                    'due_on': due_on,
+                    'days_passed': int(row['days_passed']),
+                    'new': new,
+                    'old': False,
+                }
 
-        try:
-            date = dt.strptime(row['invoice_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
-            due_on = dt.strptime(row['due_date'], '%d-%b-%y').date().strftime('%Y-%m-%d')
-        except ValueError:
-            continue
+                invoice, created = Invoice.objects.using('default').update_or_create(
+                    user=user_instance,  # Pass user_instance to the model
+                    invoice=customer,
+                    ref_no=row['ref_no'],
+                    defaults=invoice_defaults
+                )
 
-        invoice_defaults = {
-            'date': date,
-            'pending': float(row['pending_amount']),
-            'due_on': due_on,
-            'days_passed': int(row['days_passed']),
-        }
+                # Retrieve existing invoice and update only non-empty fields
+                if not created:
+                    for field, value in invoice_defaults.items():
+                        if value is not None:
+                            setattr(invoice, field, value)
+                    invoice.save()
 
-        invoice, created = Invoice.objects.using('default').update_or_create(
-            user=user_instance,  # Pass user_instance to the model
-            invoice=customer,
-            ref_no=row['ref_no'],
-            defaults=invoice_defaults
-        )
+        # Update old invoices
+        all_invoices = Invoice.objects.filter(user=user_instance, invoice=customer, new= False, old=False, paid=False)
+        for invoice in all_invoices:
+            if invoice.ref_no not in csv_invoice_refs:
+                invoice.old = True
+                invoice.save()
 
-        # Retrieve existing invoice and update only non-empty fields
-        if not created:
-            for field, value in invoice_defaults.items():
-                if value is not None:
-                    setattr(invoice, field, value)
-            invoice.save()
 
 
 from rest_framework import status
@@ -458,8 +478,11 @@ def get_paid_Invoice(request):
             customer_data = []
             for customer in customers:
                 # Filter unpaid invoices
+                named = Name.objects.filter(user = user_id, invoice = customer)
+                names = NameSerializer(named, many = True).data
                 customer_dict = InvoiceSerializer(customer).data
-                invoices = Invoice.objects.filter(user = user_id , invoice=customer, paid = True).order_by('-paid_date', '-pending')
+                customer_dict['names'] = names
+                invoices = Invoice.objects.filter(user = user_id , invoice=customer, paid = True, old = False, new = False).order_by('-paid_date', '-pending')
                 paid_amount = 0
                 for each in invoices:
                     paid_amount += each.pending
@@ -531,8 +554,11 @@ def get_to_do_invoices(request):
 
         # Iterate through customers to classify them based on follow_up_date or promised_date
         for customer in customers:
-            unpaid_invoices = Invoice.objects.filter(user=user_id, invoice=customer, paid=False)
+            named = Name.objects.filter(user = user_id, invoice = customer)
+            names = NameSerializer(named, many = True).data
+            unpaid_invoices = Invoice.objects.filter(user=user_id, invoice=customer, paid=False, old = False, new = False)
             customer_dict = InvoiceSerializer(customer).data
+            customer_dict['names'] = names
             customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
             comments = Comments.objects.filter(
                 user=user_id,
@@ -626,38 +652,43 @@ def get_pending_invoices(request):
         data = SalesPersonsSerializer(sales, many=True).data
         for sale in data:
             lis.append(sale['name'])
+
         # Subquery to get the promised_date of the last comment for each customer
         last_comment = Comments.objects.filter(user=user_id, invoice=OuterRef('pk'), comment_paid=False).order_by('-id')
         customers = Customers.objects.filter(user=user_id)
+
         # Annotate customers with the promised_date of the last comment
         if len(customers) > 0:
-            customers = Customers.objects.annotate(
+            customers = customers.annotate(
                 last_promised_date=Subquery(last_comment.values('promised_date')[:1]),
                 follow_up_date=Subquery(last_comment.values('follow_up_date')[:1]),
-                
-            ).filter(user = user_id)
+            ).filter(user=user_id)
 
             # Filter customers where there are no comments or last_promised_date is less than yesterday
             customers = customers.filter(Q(last_promised_date__isnull=True) & Q(follow_up_date__isnull=True))
-
 
             # Serialize the queryset
             customer_data = []
             for customer in customers:
                 customer_dict = InvoiceSerializer(customer).data
-                comments = Comments.objects.filter(user = customer_dict['user'], invoice = customer_dict['id'], promised_date__isnull=False, follow_up_date__isnull = False)
-                customer_dict['comments'] =CommentsSerializer(comments, many = True).data
-                # Filter unpaid invoices
-                unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False)
+                comments = Comments.objects.filter(user=customer_dict['user'], invoice=customer_dict['id'], promised_date__isnull=False, follow_up_date__isnull=False)
+                customer_dict['comments'] = CommentsSerializer(comments, many=True).data
 
-                if len(unpaid_invoices)>0 :
-                    customer_dict = InvoiceSerializer(customer).data
+                # Filter unpaid invoices
+                unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False, old=False, new=False)
+
+                if len(unpaid_invoices) > 0:
+                    named = Name.objects.filter(user=user_id, invoice=customer)
+                    names = NameSerializer(named, many=True).data
+                    customer_dict['names'] = names  # Add names here
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
+                    # print(customer_dict)
                     customer_data.append(customer_dict)
         else:
             customer_data = []
-        # Return the    ordered customers as JSON response
-        return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
+
+        # Return the ordered customers as JSON response
+        return JsonResponse({'sales_data': data, 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
         # Handle other HTTP methods (e.g., POST, PUT, DELETE)
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
@@ -767,7 +798,7 @@ export_to_csv(Sales_Persons, 'sales_persons.csv')
 export_to_csv(Users, 'users.csv')
 export_to_csv(Customers, 'customers.csv')
 export_to_csv(Comments, 'comments.csv')
-export_to_csv(Invoice, 'comments.csv')
+# export_to_csv(Invoice, 'invoices.csv')
 
 
 import csv
@@ -834,41 +865,6 @@ def import_from_csv(model_class, file_path):
                     )
                     # return Response(SalesPersonsSerializer(sale).data, status=status.HTTP_201_CREATED)
 
-# from .serializers import NameSerializer
-
-# def create_existing_names():
-#     customers = Customers.objects.all()
-#     for customer in customers:
-#         if customer.name and customer.phone_number:
-#             print(f"Processing customer: {customer}")
-
-#             row = {
-#                 'user': customer.user.id,  # Use the user's ID
-#                 'invoice': customer.account,  # Use the customer's ID
-#                 'name': customer.name,
-#                 'phone_number': customer.phone_number
-#             }
-
-#             serializer = NameSerializer(data=row)
-#             print(f"Serializer data: {serializer}")
-
-#             if serializer.is_valid():
-#             #     print("Serializer is valid")
-#                 print(f"Validated data: {serializer.validated_data}")
-#                 name = Name.objects.create(
-#                     user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
-#                     invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
-#                     name = serializer.validated_data.get('name'),
-#                     phone_number = serializer.validated_data.get('phone_number'),
-                    
-#                 )
-#             #     serializer.save()  # Save the validated data to create the Name instance
-#             # else:
-#             #     print("Serializer errors:")
-#             #     print(serializer.errors)  # Print the errors if validation fails
-
-# create_existing_names()
-
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -902,3 +898,84 @@ def create_customer_name(request):
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def get_review_invoices(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = Users.objects.get(id=data.get('user_id'))
+        
+        invoices_new = Invoice.objects.filter(user = user_id, new = True)
+        invoices_old = Invoice.objects.filter(user = user_id, old = True)
+        
+        new = InvoiceDetailSerializer(invoices_new, many = True).data
+        old = InvoiceDetailSerializer(invoices_old, many = True).data
+
+        # Return the ordered customers as JSON response
+        return JsonResponse({'invoices_new' : new, 'invoices_old': old}, safe=False)
+    else:
+        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+
+import json
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def new_invoice_acceptance(request):
+    try:
+        # Parse input parameters from JSON data
+        data = json.loads(request.body)
+        id = data.get('id')
+        acceptance = data.get('acceptance')
+
+        # Fetch the comment
+        invoice = get_object_or_404(Invoice, id=id)
+        if acceptance == True:
+            invoice.new = False
+            invoice.old = False
+            invoice.save()
+        else:
+            invoice.delete()
+
+        # Update the paid field of the comment
+
+
+        return JsonResponse({'status': 'success', 'message': 'Acceptance done properly.'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def old_invoice_acceptance(request):
+    try:
+        # Parse input parameters from JSON data
+        data = json.loads(request.body)
+        id = data.get('id')
+        paid_status = data.get('paid_status')
+        paid_date =  data.get('paid_date')
+
+        # Fetch the comment
+        invoice = get_object_or_404(Invoice, id=id)
+        invoice.new = False
+        invoice.old = False
+        invoice.paid = paid_status
+        if paid_status == True:
+            invoice.paid_date = paid_date
+        invoice.save()
+
+        # Update the paid field of the comment
+
+
+        return JsonResponse({'status': 'success', 'message': 'paid status done properly.'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

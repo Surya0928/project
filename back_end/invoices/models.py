@@ -44,6 +44,8 @@ class Invoice(models.Model):
     sales_person = models.ForeignKey(Sales_Persons,on_delete=models.SET_NULL, related_name='invoice_sales_p', default=None, null=True, blank=True)
     paid = models.BooleanField(default=False)
     paid_date = models.DateField(null=True, blank=True)
+    new = models.BooleanField(default=False)
+    old = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.invoice}"

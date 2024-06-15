@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
-import { Paidinfo, InvoiceDetail, CommentInfo, SalesPerson } from '../models';
+import { Paidinfo, InvoiceDetail, CommentInfo, SalesPerson , Each_Account_Name_List} from '../models';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil , faSquarePlus} from '@fortawesome/free-solid-svg-icons';
 import { useHistory } from 'react-router-dom';
@@ -31,7 +31,7 @@ const Paid: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/paid_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/paid_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const Paid: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,12 +156,18 @@ const Paid: React.FC = () => {
                 <div className="flex text-sm justify-around w-full">
                   <div className="flex w-36 items-center justify-center font-bold underline" onClick={() => handleAccountClick(account.account)}>{account.account}</div>
                   <div className='flex flex-col w-36 items-center justify-center space-y-1'>
-                    <div>
-                        {account.name}
-                    </div>
-                    <div>
-                        {account.phone_number}
-                    </div>
+                  <div className='flex flex-col h-20 overflow-y-auto space-y-1'>
+                    {account.names.map((Name: Each_Account_Name_List) => (
+                      <div>
+                        <div>
+                            {Name.name}
+                        </div>
+                        <div>
+                            ({Name.phone_number})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   </div>
                   <div className="flex h-auto w-36 justify-center items-center">{account.number_of_invoices}</div>
                   <div className="flex h-auto w-36 justify-center items-center">{account.amount_paid}</div>

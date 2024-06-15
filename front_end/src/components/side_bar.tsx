@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faClock, faList, faSquareCheck, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faClock, faList, faSquareCheck, faUserPlus, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useHistory, } from 'react-router-dom';
 
 interface SidebarProps {
-    current_page: 'Home' | 'Pending' | 'To_Do' | 'Paid';
+    current_page: 'Home' | 'Pending' | 'To_Do' | 'Paid' | 'Review';
   }
 
 const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
   const create_sales = async () => {
     if (Name) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-sales/', {
+        const response = await fetch('http://127.0.0.1:8000/create-sales/', {
           
           method: 'POST',
           headers: {
@@ -86,10 +86,15 @@ const Sidebar: React.FC<SidebarProps> = ({ current_page }) => {
           onClick={() => { history.push('/paid'); }}
         />
         <FontAwesomeIcon
-            icon={faPlus}
+            icon={faUserPlus}
             className='w-7 h-7 cursor-pointer text-black'
             onClick={togglePopup}
           />
+        <FontAwesomeIcon
+          icon={faPlus}
+          className={`w-7 h-7 cursor-pointer ${current_page === 'Review' ? 'text-blue-600' : 'text-black'}`}
+          onClick={() => { history.push('/review'); }}
+        />
       </div>
       {isPopupVisible && (
         <div className='fixed inset-0  flex items-center justify-center bg-black bg-opacity-50'>

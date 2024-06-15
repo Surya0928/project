@@ -22,7 +22,7 @@ const CSVUploadPage: React.FC = () => {
     )}
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_uploaded_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_uploaded_csv/', {
         method: 'POST',
         body: formData
       });
@@ -31,7 +31,7 @@ const CSVUploadPage: React.FC = () => {
         const responseData = await response.json();
         console.log(responseData);
         alert('CSV file uploaded successfully!');
-        history.push('/home');
+        history.push('/review');
       } else {
         console.error('Failed to upload CSV:', response.statusText);
         alert('Failed to upload CSV. Please try again.');
@@ -58,7 +58,7 @@ const CSVUploadPage: React.FC = () => {
       )}
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_update_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_update_csv/', {
         method: 'POST',
         body: formData
       });
@@ -67,7 +67,7 @@ const CSVUploadPage: React.FC = () => {
         const responseData = await response.json();
         console.log(responseData);
         alert('CSV file updated successfully!');
-        history.push('/home');
+        history.push('/review');
       } else {
         console.error('Failed to upload CSV:', response.statusText);
         alert('Failed to update CSV. Please try again.');

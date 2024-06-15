@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
-import { AccountInfo, InvoiceDetail, CommentInfo, SalesPerson } from '../models';
+import { AccountInfo, InvoiceDetail, CommentInfo, SalesPerson , Each_Account_Name_List} from '../models';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil , faSquarePlus} from '@fortawesome/free-solid-svg-icons';
 import { useHistory } from 'react-router-dom';
@@ -19,7 +19,7 @@ const Pending: React.FC = () => {
   const [Num, setNum] = useState<string | null>(null);
   const [Sales_p, setSales_p] = useState<string>('Select Sales Person');
   const [Edit, setIsEdit] = useState(false);
-  const [acc, setacc] = useState<string | null>(null);
+  const [acc, setacc] = useState<string>('');
   const [comsec, setcomsec] = useState(false);
   const [comacc, setcomacc] = useState<string>('');
   const [prev_com, setprevcom] = useState(false);
@@ -69,7 +69,7 @@ const Pending: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/pending_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/pending_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ const Pending: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/create_customer_name/', {
+        const response = await fetch('http://127.0.0.1:8000/create_customer_name/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ const Pending: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
+          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -367,7 +367,7 @@ const Pending: React.FC = () => {
 
     if (account) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -427,7 +427,7 @@ const Pending: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -667,20 +667,28 @@ const Pending: React.FC = () => {
                 <div className="flex text-sm justify-around w-full">
                   <div className="flex w-32 items-center justify-center font-bold underline" onClick={() => handleAccountClick(account.account)}>{account.account}</div>
                   <div className='flex flex-col w-32 items-center justify-center space-y-1'>
-                    <div>
-                      {Edit && acc===account.account ? (
+                    {!Edit && (
+                      <div className='flex flex-col h-24 overflow-y-auto space-y-3'>
+                        {account.names.map((Name: Each_Account_Name_List) => (
+                          <div >
+                            <div>
+                                {Name.name}
+                            </div>
+                            <div>
+                                ({Name.phone_number})
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {Edit && acc === account.account && (
+                      <div className='flex flex-col items-center justify-center space-y-2 h-auto'>
                         <input
                           className='w-28 h-7 border border-gray-500 bg-gray-300 rounded-xl justify-center text-center'
                           type="text"
                           onChange={(e) => updateName(e.target.value)}
                           placeholder='Name'
                         />
-                      ) : (
-                        account.name
-                      )}
-                    </div>
-                    <div>
-                      {Edit && acc===account.account ? (
                         <input
                           className=' h-7 w-36 border border-gray-500 bg-gray-300 rounded-xl justify-center text-center'
                           type="text"
@@ -688,10 +696,9 @@ const Pending: React.FC = () => {
                           onChange={(e) => updateNum(e.target.value)}
                           placeholder='Phone Number'
                         />
-                      ) : (
-                        account.phone_number
-                      )}
-                    </div>
+                      </div>
+                    )}
+
                   </div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.total_due}</div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.over_due}</div>

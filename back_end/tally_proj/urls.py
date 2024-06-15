@@ -13,9 +13,12 @@ urlpatterns = [
     path('create_customer_name/', views.create_customer_name, name='create_customer_name'),
     path('comments/', views.get_all_comments, name='get_all_comments'),
     path('invoice_paid/', views.update_invoice_paid_status, name='update_invoice_paid_status'),
+    path('invoice_acceptance/', views.new_invoice_acceptance, name='new_invoice_acceptance'),
+    path('invoice_old_paid/', views.old_invoice_acceptance, name='old_invoice_acceptance'),
     path('paid_invoices/', views.get_paid_Invoice, name='get_paid_invoices'),
     path('to_do_invoices/', views.get_to_do_invoices, name='get_to_do_invoices'),
     path('pending_invoices/', views.get_pending_invoices, name='get_pending_invoices'),
+    path('review_invoices/', views.get_review_invoices, name='get_review_invoices'),
     path('invoice_sales_p/', views.update_invoice_sales_person, name='invoice_sales_person'),
     path('login/', views.login, name='login')
 ]

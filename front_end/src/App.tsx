@@ -8,6 +8,7 @@ import Pending from './pages/Pending';
 import Paid from './pages/Paid';
 import To_Do from './pages/To_Do';
 import Login from './pages/Login';
+import Review from './pages/Review';
 import { AppProvider } from './components/app_variables';
 
 const App: React.FC = () => {
@@ -25,6 +26,7 @@ const App: React.FC = () => {
           <Route path="/pending" component={Pending} />
           <Route path="/paid" component={Paid} />
           <Route path="/to_do" component={To_Do} />
+          <Route path="/review" component={Review} />
           {/* Other routes if needed */}
 
         </Switch>

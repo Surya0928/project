@@ -50,6 +50,7 @@ export interface AccountInfo {
   invoices: number;
   invoice_details: InvoiceDetail[];
   comments: CommentInfo[];
+  names : Each_Account_Name_List[];
   promised_amount: number;
   promised_date: string;
   premium_user: boolean;
@@ -71,6 +72,7 @@ export interface Data_by_Day {
   invoices: number;
   invoice_details: InvoiceDetail[];
   comments: CommentInfo[];
+  names : Each_Account_Name_List[];
   promised_amount: number;
   promised_date: string;
   premium_user: boolean;
@@ -92,10 +94,20 @@ export interface Paidinfo {
   invoices: number;
   invoice_details: InvoiceDetail[];
   comments: CommentInfo[];
+  names : Each_Account_Name_List[];
   promised_amount: number;
   promised_date: string;
   premium_user: boolean;
   amount_paid : string;
   number_of_invoices: number;
   last_payment_date : string;
+}
+
+
+
+export interface Each_Account_Name_List {
+  id: number;
+  invoice: string;
+  name: string;
+  phone_number : string;
 }
