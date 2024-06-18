@@ -14,7 +14,6 @@ const Pending: React.FC = () => {
   const [accountInfo, setAccountInfo] = useState<AccountInfo[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [date, setdate] = useState<string | null>(null);
-  const [Amount, setAmount] = useState<number | null>(null);
   const [Name, setName] = useState<string | null>(null);
   const [Num, setNum] = useState<string | null>(null);
   const [Sales_p, setSales_p] = useState<string>('Select Sales Person');
@@ -69,7 +68,7 @@ const Pending: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/pending_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/pending_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,6 +129,7 @@ const Pending: React.FC = () => {
     setpromised_date('');
     setdate('');
     setprom_amount(0);
+    setpaid_amount(0);
     setcomacc('');
     setSelectedAccount('');
     setfollow_up_date('')
@@ -152,13 +152,6 @@ const Pending: React.FC = () => {
 
   };
 
-  const updatePromisedDate = (date: string) => {
-    setdate(date)
-  };
-
-  const updatePromisedAmount = (amount: number) => {
-    setAmount(amount)
-  };
   
   const updateName = (Name: string) => {
     setName(Name)
@@ -193,7 +186,7 @@ const Pending: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/create_customer_name/', {
+        const response = await fetch('http://127.0.0.1:8000/create_customer_name/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -216,7 +209,7 @@ const Pending: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
+          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -235,7 +228,6 @@ const Pending: React.FC = () => {
   
         // If customer update was successful, proceed with other actions
         if (customerUpdateSuccess) {
-          setAmount(null);
           setdate(null);
           setIsEdit(false);
           setName(null);
@@ -266,14 +258,12 @@ const Pending: React.FC = () => {
       setfollow_up_date(formattedDate);
       console.log(formattedDate); // Log the formatted date directly
       setpromised_date('');
-      setTotalPendingAmount(0)
       setprom_amount(0.00)
       
       set_invoices_paid(false);
 
     }
     if (value === "Requested Call Back") {
-      setTotalPendingAmount(0);
       set_invoices_paid(false);
     }
     if (value !== 'No Response') {
@@ -286,7 +276,11 @@ const Pending: React.FC = () => {
   const [prom_amount, setprom_amount] = useState<number>(0.00);
   const handleprom_amountsChange = (amount: number) => {
     setprom_amount(amount);
-    setAmount(amount);
+  };
+
+  const [paid_amount, setpaid_amount] = useState<number>(0.00);
+  const handlepaid_amountsChange = (amount: number) => {
+    setpaid_amount(amount);
   };
 
   const [promised_date, setpromised_date] = useState<string>('');
@@ -350,7 +344,7 @@ const Pending: React.FC = () => {
   };
   const selectedRefNumbersString = selectedRefNumbers.join(', ');
 
-  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean, followUpTime: string, comment_paid_date: string) => {
+  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean, followUpTime: string, comment_paid_date: string, invoices_paid_amount : number) => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding leading zero if necessary
@@ -367,7 +361,7 @@ const Pending: React.FC = () => {
 
     if (account) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
@@ -386,6 +380,7 @@ const Pending: React.FC = () => {
             promised_date: paymentdate || null,
             invoices_paid: invoices_paid,
             invoices_paid_date: comment_paid_date || null,
+            invoices_paid_amount : invoices_paid_amount || totalPendingAmount || 0.00,
           }),
         });
       
@@ -398,9 +393,10 @@ const Pending: React.FC = () => {
           setpromised_date('');
           setdate('');
           setprom_amount(0);
+          setpaid_amount(0);
           setcomacc('');
           setSelectedAccount('');
-          setfollow_up_date('')
+          setfollow_up_date('');
           setFollowUpTime('');
           setcomment_paid_date('');
           setassigntosales(false);
@@ -427,7 +423,7 @@ const Pending: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -616,10 +612,11 @@ const Pending: React.FC = () => {
                     disabled = {selectedOption === ('No Response' || 'Requested Call Back') || selectedRefNumbers.length == 0}
                   />
                   {invoices_paid && ( <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={comment_paid_date} onChange={(e) => handlecommentpaiddateChange(e.target.value)} type="date"/>)}
+                  {invoices_paid && ( <input disabled = {selectedRefNumbers.length === 0} id='paid_amount' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handlepaid_amountsChange(Number(e.target.value))} className='bg-white w-40 pl-1 border border-black'></input>)}
                 </div>
 
                 {!prev_com && (<div>
-                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid, followUpTime, comment_paid_date)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
+                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid, followUpTime, comment_paid_date, paid_amount)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
                 
               </div>
