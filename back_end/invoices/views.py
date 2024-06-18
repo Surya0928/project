@@ -28,7 +28,7 @@ def get_all_invoices(request):
         # Subquery to get the promised_date of the last comment for each customer
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
-        customers = Customers.objects.all()
+        customers = Customers.objects.filter(user = user_id)
         #print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
@@ -64,7 +64,7 @@ def get_all_invoices(request):
                 invoices = Invoice.objects.filter(user = user_id , invoice=customer, old = False, new = False).order_by('date', 'id')
                 if len(invoices) > 0:
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
-                    customer_data.append(customer_dict)
+                    
 
                 else:
                     customer_dict['invoice_details'] =[]
@@ -73,7 +73,7 @@ def get_all_invoices(request):
                 #     sales_person = Sales_Persons.objects.filter(name = each.sales_person)
                 #     if len(sales_person) > 0:
                 #         each.sales_person = sales_person[0].name
-            
+                customer_data.append(customer_dict)
                 
         else:
             customer_data = []
