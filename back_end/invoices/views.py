@@ -28,7 +28,7 @@ def get_all_invoices(request):
         # Subquery to get the promised_date of the last comment for each customer
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
-        customers = Customers.objects.filter(user = user_id)
+        customers = Customers.objects.all()
         #print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
