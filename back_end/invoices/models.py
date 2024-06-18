@@ -19,7 +19,7 @@ class Customers(models.Model):
     promised_amount = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     promised_date = models.DateField(null=True, blank=True)
     premium_user = models.BooleanField(default=False)
-
+    
 
     def __str__(self):
         return f"{(self.account)}"

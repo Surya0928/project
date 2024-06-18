@@ -64,6 +64,8 @@ def get_all_invoices(request):
                 invoices = Invoice.objects.filter(user = user_id , invoice=customer, old = False, new = False).order_by('date', 'id')
                 if len(invoices) > 0:
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
+                    customer_data.append(customer_dict)
+
                 else:
                     customer_dict['invoice_details'] =[]
                 
@@ -72,7 +74,7 @@ def get_all_invoices(request):
                 #     if len(sales_person) > 0:
                 #         each.sales_person = sales_person[0].name
             
-                customer_data.append(customer_dict)
+                
         else:
             customer_data = []
 
@@ -105,6 +107,8 @@ def update_invoice_paid_status(request):
         invoice = get_object_or_404(Invoice, id=invoice)
 
         # Update the paid field of the comment
+        if '/' in invoice.ref_no:
+            invoice.ref_no = invoice.ref_no.split('/p')[0]
         invoice.paid = paid_status
         invoice.paid_date = paid_date
         invoice.save()
@@ -377,18 +381,48 @@ def create_comment(request):
         user_id = Users.objects.get(id=data.get('user'))
         #print(data.get('invoices_paid'))
         customer = Customers.objects.get(user=user_id, account=data.get('invoice'))
-        if data.get('invoices_paid') == True:
+        
+        if data.get('invoices_paid'):
+            paid_amount = data.get('invoices_paid_amount')
             if data.get('invoice_list'):
-                for each in (data.get('invoice_list').split(', ')):
-                    invoice = get_object_or_404(Invoice, ref_no=each, user = data.get('user'), invoice = customer.id)
-                    #print(each, invoice)
+                invoice_list = data.get('invoice_list').split(', ')
+                for each in invoice_list:
 
-                # Update the paid field of the comment
-                    invoice.paid = data.get('invoices_paid')
-                    invoice.paid_date = data.get('invoices_paid_date')
-                    invoice.save()
+                    invoice = get_object_or_404(Invoice, ref_no=each, user=user_id, invoice=customer.id)
+                    if invoice.pending <= paid_amount:
+                        if '/p' in invoice.ref_no:
+                            invoice.ref_no = invoice.ref_no.split('/p')[0]
+                        invoice.paid = data.get('invoices_paid')
+                        invoice.paid_date = data.get('invoices_paid_date')
+                        print(1)
+                        invoice.save()
+                        paid_amount -= invoice.pending
+                    else:
+                        invoice.ref_no = f'{invoice.ref_no}/part'
+                        invoice.pending -= paid_amount
+                        print(2)
+                        invoice.save()
+                        paid_amount = 0
+                
+                # Build the query to filter comments based on invoice_list
+                query = Q()
+                for ref_no in invoice_list:
+                    query |= Q(invoice_list__icontains=ref_no)
+                comments = Comments.objects.filter(user=user_id, invoice=customer).filter(query)
+                for every in comments:
+                    every.comment_paid =  True
+                    every.save()
+                    
         # else:
             ##print('no')
+
+        if '.' in data.get('remarks'):
+            if data.get('remarks').split('.')[0] == 'No Response' or data.get('remarks').split('.')[0] == 'Requested Call Back':
+                prom_am = 0.0
+            else:
+                prom_am = data.get('amount_promised')
+        else:
+            prom_am = data.get('amount_promised')
         comment_data = {
             'user': user_id.id,
             'invoice': customer.id,
@@ -496,6 +530,7 @@ def get_paid_Invoice(request):
         else:
             customer_data = []
 
+        customer_data.sort(key=lambda x: datetime.datetime.strptime(x['last_payment_date'], '%d-%m-%Y'), reverse=True)
         # Return the ordered customers as JSON response
         return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
