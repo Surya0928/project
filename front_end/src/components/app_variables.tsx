@@ -8,6 +8,8 @@ interface AppContextProps {
     setuser_id: React.Dispatch<React.SetStateAction<number | null>>;
     username: string | null;
     setusername: React.Dispatch<React.SetStateAction<string | null>>;
+    customer_number: number | null;
+    setcustomer_number: React.Dispatch<React.SetStateAction<number | null>>;
   }
 
 interface AppProviderProps {
@@ -23,10 +25,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const id = localStorage.getItem('user_id');
     return id ? parseInt(id, 10) : null;
   });
+  const [customer_number, setcustomer_number] = useState<number | null>(() => {
+    const number = localStorage.getItem('customer_number');
+    return number ? parseInt(number, 10) : null;
+  });
+  
 
   useEffect(() => {
     localStorage.setItem('user_id', user_id?.toString() || '');
     localStorage.setItem('username', username || '');
+    localStorage.setItem('customer_number', customer_number?.toString() || '');
   }, [user_id, username]);
   
   return (
@@ -35,7 +43,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         user_id,
         setuser_id,
         username,
-        setusername
+        setusername,
+        customer_number,
+        setcustomer_number
       }}
     >
       {children}

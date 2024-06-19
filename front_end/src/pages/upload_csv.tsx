@@ -4,8 +4,12 @@ import { AppProvider, useAppContext } from '../components/app_variables';
 
 const CSVUploadPage: React.FC = () => {
   const history = useHistory();
-  const {user_id, username} = useAppContext();
+  const {user_id, username, customer_number} = useAppContext();
 
+  useEffect(() => {
+    console.log(customer_number);
+  
+  }, []);
   const handleUpload = async () => {
     const csvFileInput = document.getElementById('csvFileInput') as HTMLInputElement;
     const file = csvFileInput.files?.[0];
@@ -22,7 +26,7 @@ const CSVUploadPage: React.FC = () => {
     )}
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_uploaded_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_uploaded_csv/', {
         method: 'POST',
         body: formData
       });
@@ -58,7 +62,7 @@ const CSVUploadPage: React.FC = () => {
       )}
 
     try {
-      const response = await fetch('http://165.232.188.250:8080/process_update_csv/', {
+      const response = await fetch('http://127.0.0.1:8000/process_update_csv/', {
         method: 'POST',
         body: formData
       });
@@ -88,9 +92,9 @@ const CSVUploadPage: React.FC = () => {
         className="border border-gray-300 rounded p-2 mb-4"
       />
       <div className='flex w-auto space-x-2'>
-        <button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
-          Create
-        </button>
+          {customer_number && customer_number > 0 && (<button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
+            Create
+          </button>)}
         <button onClick={handleUpdate} className="bg-green-500 hover:bg-green-700 text-white font-bold w-32 py-2 px-4 rounded">
           Update
         </button>

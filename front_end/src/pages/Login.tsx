@@ -7,10 +7,10 @@ const Login: React.FC = () => {
   const [user_name, setuser_name] = useState<string>('');
   const [password, setpassword] = useState<string>('');
   const [error, seterror] =useState<boolean>(false);
-  const { user_id, setuser_id, username, setusername } = useAppContext();
+  const { user_id, setuser_id, username, setusername, customer_number, setcustomer_number } = useAppContext();
   const Login = async () => {
     try {
-        const response = await fetch('http://165.232.188.250:8080/login/', {
+        const response = await fetch('http://127.0.0.1:8000/login/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -25,6 +25,7 @@ const Login: React.FC = () => {
             // Handle successful login
             setuser_id(data['id'])
             setusername(data['username'])
+            setcustomer_number(data['customers'])
             console.log('Logged in user:', data);
             setTimeout
             setTimeout(() => {
