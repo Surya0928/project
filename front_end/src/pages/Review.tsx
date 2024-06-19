@@ -15,7 +15,7 @@ const Review: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/review_invoices/', {
+      const response = await fetch('http://165.232.188.250:8080/review_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ const Review: React.FC = () => {
 
   const new_invoice_acceptance = async (id: number, acceptance: boolean) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoice_acceptance/', {
+      const response = await fetch('http://165.232.188.250:8080/invoice_acceptance/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const Review: React.FC = () => {
 
   const old_invoice_acceptance = async (invoice: InvoiceDetail) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/invoice_old_paid/', {
+      const response = await fetch('http://165.232.188.250:8080/invoice_old_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const Review: React.FC = () => {
   const handleBulkAcceptance = async (acceptance: boolean) => {
     try {
       const invoiceIds = New_Invoices.map(invoice => invoice.id);
-      const response = await fetch('http://127.0.0.1:8000/bulk_invoice_acceptance/', {
+      const response = await fetch('http://165.232.188.250:8080/bulk_invoice_acceptance/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
