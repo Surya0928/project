@@ -281,7 +281,8 @@ def import_data_from_csv(df, user_id):
             'promised_date': customer[0].promised_date if len(customer) > 0 else None,
             'promised_amount': customer[0].promised_amount if len(customer) > 0 else 0.0,
             'name': name if name else None,
-            'phone_number': phone_number if phone_number else None
+            'phone_number': phone_number if phone_number else None,
+            'credit_period' : 60
         }
 
         customer, created = Customers.objects.using('default').update_or_create(
@@ -710,7 +711,7 @@ def get_pending_invoices(request):
                 customer_dict['comments'] = CommentsSerializer(comments, many=True).data
 
                 # Filter unpaid invoices
-                unpaid_invoices = Invoice.objects.filter(invoice=customer, paid=False, old=False, new=False)
+                unpaid_invoices = Invoice.objects.filter(user = user_id, invoice=customer, paid=False, old=False, new=False)
 
                 if len(unpaid_invoices) > 0:
                     named = Name.objects.filter(user=user_id, invoice=customer)
@@ -718,8 +719,8 @@ def get_pending_invoices(request):
                     customer_dict['names'] = names  # Add names here
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
                     # print(customer_dict)
-                    customer_data.append(customer_dict)
-        else:
+                customer_data.append(customer_dict)
+        else:   
             customer_data = []
 
         # Return the ordered customers as JSON response
@@ -781,9 +782,11 @@ def login(request):
         password = data.get('password')
         users = Users.objects.filter(username=username)
         if len(users) > 0:
+            print(1)
+            customers = Customers.objects.filter(user = get_object_or_404(Users, id = users[0].id))
             if users[0].password == password:
                 #print(''yes')
-                return JsonResponse({'id': users[0].id, 'username': users[0].username})
+                return JsonResponse({'id': users[0].id, 'username': users[0].username, 'customers' : len(customers)})
             
         return JsonResponse({'error': 'Incorrect password'}, status=400)
 
@@ -829,10 +832,10 @@ def export_to_csv(model_class, file_path):
     
     #print('f'Data exported successfully to {file_path}')
 
-export_to_csv(Sales_Persons, 'sales_persons.csv')
-export_to_csv(Users, 'users.csv')
-export_to_csv(Customers, 'customers.csv')
-export_to_csv(Comments, 'comments.csv')
+# export_to_csv(Sales_Persons, 'sales_persons.csv')
+# export_to_csv(Users, 'users.csv')
+# # export_to_csv(Customers, 'customers.csv')   
+# export_to_csv(Comments, 'comments.csv')
 # export_to_csv(Invoice, 'invoices.csv')
 
 
@@ -1014,3 +1017,36 @@ def old_invoice_acceptance(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+import json
+from .models import Invoice
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def bulk_invoice_acceptance(request):
+    try:
+        # Parse input parameters from JSON data
+        data = json.loads(request.body)
+        invoice_ids = data.get('invoice_ids')
+        acceptance = data.get('acceptance')
+
+        if not isinstance(invoice_ids, list):
+            return JsonResponse({'status': 'error', 'message': 'invoice_ids should be a list'}, status=400)
+
+        for invoice_id in invoice_ids:
+            invoice = get_object_or_404(Invoice, id=invoice_id)
+            if acceptance:
+                invoice.new = False
+                invoice.old = False
+                invoice.save()
+            else:
+                invoice.delete()
+
+        return JsonResponse({'status': 'success', 'message': 'Invoices processed successfully.'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+

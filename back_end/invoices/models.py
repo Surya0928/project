@@ -19,10 +19,11 @@ class Customers(models.Model):
     promised_amount = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     promised_date = models.DateField(null=True, blank=True)
     premium_user = models.BooleanField(default=False)
-    
+    credit_period = models.IntegerField(default=60, null=True, blank=True)  # Add this field
 
     def __str__(self):
-        return f"{(self.account)}"
+        return f"{self.account}"
+
  
 class Sales_Persons(models.Model):
     name = models.CharField(max_length=100, null=True)
