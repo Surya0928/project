@@ -105,13 +105,17 @@ def update_invoice_paid_status(request):
 
         # Fetch the comment
         invoice = get_object_or_404(Invoice, id=invoice)
-
+        customer = get_object_or_404(Customers, id = invoice.invoice.id)
         # Update the paid field of the comment
         if '/' in invoice.ref_no:
             invoice.ref_no = invoice.ref_no.split('/p')[0]
         invoice.paid = paid_status
         invoice.paid_date = paid_date
         invoice.save()
+        if invoice.days_passed > customer.credit_period:
+            customer.over_due = customer.over_due - invoice.pending
+        customer.total_due = customer.total_due - invoice.pending
+        customer.save()
 
         return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
 
@@ -282,7 +286,7 @@ def import_data_from_csv(df, user_id):
             'promised_amount': customer[0].promised_amount if len(customer) > 0 else 0.0,
             'name': name if name else None,
             'phone_number': phone_number if phone_number else None,
-            'credit_period' : 60
+            'credit_period' : 90
         }
 
         customer, created = Customers.objects.using('default').update_or_create(
@@ -387,12 +391,19 @@ def create_comment(request):
             paid_amount = data.get('invoices_paid_amount')
             if data.get('invoice_list'):
                 invoice_list = data.get('invoice_list').split(', ')
+                over_due = 0
                 for each in invoice_list:
-
+                    com = Comments.objects.filter(user = user_id, invoice = customer, invoice_list = data.get('invoice_list'))
+                    for c in com:
+                        c.comment_paid = data.get('invoices_paid')
+                        c.save()
                     invoice = get_object_or_404(Invoice, ref_no=each, user=user_id, invoice=customer.id)
+                    if invoice.days_passed >= customer.credit_period:
+                        over_due+= invoice.pending
                     if invoice.pending <= paid_amount:
                         if '/p' in invoice.ref_no:
                             invoice.ref_no = invoice.ref_no.split('/p')[0]
+                            
                         invoice.paid = data.get('invoices_paid')
                         invoice.paid_date = data.get('invoices_paid_date')
                         print(1)
@@ -404,6 +415,9 @@ def create_comment(request):
                         print(2)
                         invoice.save()
                         paid_amount = 0
+                customer.over_due = customer.over_due - over_due
+                customer.total_due = customer.total_due-data.get('invoices_paid_amount')
+                customer.save()
                 
                 # Build the query to filter comments based on invoice_list
                 query = Q()
@@ -701,7 +715,7 @@ def get_pending_invoices(request):
             ).filter(user=user_id)
 
             # Filter customers where there are no comments or last_promised_date is less than yesterday
-            customers = customers.filter(Q(last_promised_date__isnull=True) & Q(follow_up_date__isnull=True))
+            customers = customers.filter(Q(last_promised_date__isnull=True) & Q(follow_up_date__isnull=True)).order_by('-over_due')
 
             # Serialize the queryset
             customer_data = []
@@ -719,7 +733,7 @@ def get_pending_invoices(request):
                     customer_dict['names'] = names  # Add names here
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
                     # print(customer_dict)
-                customer_data.append(customer_dict)
+                    customer_data.append(customer_dict)
         else:   
             customer_data = []
 
@@ -1003,12 +1017,17 @@ def old_invoice_acceptance(request):
 
         # Fetch the comment
         invoice = get_object_or_404(Invoice, id=id)
+        customer = get_object_or_404(Customers, id=invoice.invoice.id)
         invoice.new = False
         invoice.old = False
         invoice.paid = paid_status
         if paid_status == True:
             invoice.paid_date = paid_date
         invoice.save()
+        if invoice.days_passed > customer.credit_period:
+            customer.over_due = customer.over_due - invoice.pending
+        customer.total_due = customer.total_due - invoice.pending
+        customer.save()
 
         # Update the paid field of the comment
 
@@ -1050,3 +1069,9 @@ def bulk_invoice_acceptance(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+def bulk_credit_period_change():
+    customers =  Customers.objects.all()
+    for customer in customers:
+        customer.credit_period = 90
+        customer.save()
+bulk_credit_period_change()

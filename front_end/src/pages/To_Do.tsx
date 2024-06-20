@@ -132,11 +132,15 @@ const To_DO: React.FC = () => {
     setcomacc('');
     setSelectedAccount('');
     setfollow_up_date('');
+    setcomment_paid_date('');
     setFollowUpTime('');
     setassigntosales(false);
     setSales_p('');
+    set_invoices_paid(false);
+    setcomment_paid_date('');
     setprevcom(false)
     setcomsec(false);
+
   };
 
   const prevcomments = () => {
@@ -364,23 +368,9 @@ const To_DO: React.FC = () => {
       
         if (response.ok) {
           console.log('Comment created successfully');
-          setTotalPendingAmount(0);
-          setSelectedOption('Select Response');
-          setRemarks('');
-          setSelectedRefNumbers([]);
-          setpromised_date('');
-          setdate('');
-          setprom_amount(0);
-          setpaid_amount(0);
-          setcomacc('');
-          setSelectedAccount('');
-          setfollow_up_date('');
-          setFollowUpTime('');
-          setcomment_paid_date('');
-          setassigntosales(false);
-          setSales_p('');
-          fetchData();
-          setcomsec(false);
+          fetchData()
+          backcomsec(account)
+          
         } else {
           console.error('Failed to create comment');
         }
