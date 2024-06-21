@@ -9,6 +9,8 @@ import Paid from './pages/Paid';
 import To_Do from './pages/To_Do';
 import Login from './pages/Login';
 import Review from './pages/Review';
+import Sales from './pages/Sales';
+import Manager from './pages/Manager';
 import { AppProvider } from './components/app_variables';
 
 const App: React.FC = () => {
@@ -27,6 +29,8 @@ const App: React.FC = () => {
           <Route path="/paid" component={Paid} />
           <Route path="/to_do" component={To_Do} />
           <Route path="/review" component={Review} />
+          <Route path="/sales" component={Sales} />
+          <Route path="/manager" component={Manager} />
           {/* Other routes if needed */}
 
         </Switch>

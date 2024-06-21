@@ -8,6 +8,8 @@ interface AppContextProps {
     setuser_id: React.Dispatch<React.SetStateAction<number | null>>;
     username: string | null;
     setusername: React.Dispatch<React.SetStateAction<string | null>>;
+    user_role: string | null;
+    setuser_role: React.Dispatch<React.SetStateAction<string | null>>;
     customer_number: number | null;
     setcustomer_number: React.Dispatch<React.SetStateAction<number | null>>;
   }
@@ -21,6 +23,8 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const history = useHistory();
   const [username, setusername] = useState<string | null>(() => localStorage.getItem('username') || null);
+  const [user_role, setuser_role] = useState<string | null>(() => localStorage.getItem('user_role') || null);
+
   const [user_id, setuser_id] = useState<number | null>(() => {
     const id = localStorage.getItem('user_id');
     return id ? parseInt(id, 10) : null;
@@ -34,6 +38,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('user_id', user_id?.toString() || '');
     localStorage.setItem('username', username || '');
+    localStorage.setItem('user_role', user_role || '');
     localStorage.setItem('customer_number', customer_number?.toString() || '');
   }, [user_id, username]);
   
@@ -44,8 +49,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setuser_id,
         username,
         setusername,
+        user_role,
+        setuser_role,
         customer_number,
-        setcustomer_number
+        setcustomer_number,
       }}
     >
       {children}

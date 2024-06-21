@@ -7,7 +7,7 @@ const Login: React.FC = () => {
   const [user_name, setuser_name] = useState<string>('');
   const [password, setpassword] = useState<string>('');
   const [error, seterror] =useState<boolean>(false);
-  const { user_id, setuser_id, username, setusername, customer_number, setcustomer_number } = useAppContext();
+  const { user_id, setuser_id, username, setusername, customer_number, setcustomer_number, user_role, setuser_role } = useAppContext();
   const Login = async () => {
     try {
         const response = await fetch('http://165.232.188.250:8080/login/', {
@@ -25,11 +25,18 @@ const Login: React.FC = () => {
             // Handle successful login
             setuser_id(data['id'])
             setusername(data['username'])
+            setuser_role(data['user_role'])
             setcustomer_number(data['customers'])
             console.log('Logged in user:', data);
             setTimeout
             setTimeout(() => {
-                history.push('/csv_add')
+                if (data['user_role'] === 'Accountant') (
+                  history.push('/csv_add')
+                )
+                if (data['user_role'] === 'Manager') (
+                  history.push('/manager')
+                )
+                
               }, 1000);
         } else {
             console.error('Failed to log in');

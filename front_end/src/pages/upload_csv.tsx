@@ -92,7 +92,7 @@ const CSVUploadPage: React.FC = () => {
         className="border border-gray-300 rounded p-2 mb-4"
       />
       <div className='flex w-auto space-x-2'>
-          {customer_number && customer_number > 0 && (<button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
+          {customer_number !== null && Number(customer_number) == 0 && (<button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
             Create
           </button>)}
         <button onClick={handleUpdate} className="bg-green-500 hover:bg-green-700 text-white font-bold w-32 py-2 px-4 rounded">

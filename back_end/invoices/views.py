@@ -112,10 +112,16 @@ def update_invoice_paid_status(request):
         invoice.paid = paid_status
         invoice.paid_date = paid_date
         invoice.save()
-        if invoice.days_passed > customer.credit_period:
-            customer.over_due = customer.over_due - invoice.pending
-        customer.total_due = customer.total_due - invoice.pending
-        customer.save()
+        if data.get('paid_status') == True:
+            if invoice.days_passed > customer.credit_period:
+                customer.over_due = customer.over_due - invoice.pending
+            customer.total_due = customer.total_due - invoice.pending
+            customer.save()
+        else:
+            if invoice.days_passed > customer.credit_period:
+                customer.over_due = customer.over_due + invoice.pending
+            customer.total_due = customer.total_due + invoice.pending
+            customer.save()
 
         return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
 
@@ -346,30 +352,6 @@ def import_data_from_csv(df, user_id):
                 invoice.save()
 
 
-
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Customers
-from .serializers import CustomerUpdateSerializer
-
-class CustomerUpdateAPIView(APIView):
-    def post(self, request):
-        serializer = CustomerUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            #print(serializer.validated_data)
-            account = serializer.validated_data['account']
-            user = serializer.validated_data['user']
-            user_instance = Users.objects.get(id=user)
-            serializer.validated_data['user'] = user_instance
-            try:
-                customer = Customers.objects.get(account=account, user=user)
-                serializer.update(customer, serializer.validated_data)
-                return Response("Customer record updated successfully", status=status.HTTP_200_OK)
-            except Customers.DoesNotExist:
-                return Response("Customer not found", status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -431,20 +413,18 @@ def create_comment(request):
         # else:
             ##print('no')
 
-        if '.' in data.get('remarks'):
-            if data.get('remarks').split('.')[0] == 'No Response' or data.get('remarks').split('.')[0] == 'Requested Call Back':
-                prom_am = 0.0
-            else:
-                prom_am = data.get('amount_promised')
+        if data.get('remarks').split('.')[0] == 'No Response':
+            prom_am = 0.0
         else:
             prom_am = data.get('amount_promised')
+            
         comment_data = {
             'user': user_id.id,
             'invoice': customer.id,
             'date': data.get('date'),
             'invoice_list': data.get('invoice_list'),
             'remarks': data.get('remarks'),
-            'amount_promised': data.get('amount_promised'),
+            'amount_promised': prom_am,
             'sales_person': data.get('sales_person'),
             'follow_up_date': data.get('follow_up_date'),
             'promised_date': data.get('promised_date'),
@@ -503,9 +483,12 @@ def get_all_comments(request):
 
 
 from django.http import JsonResponse
-from .models import Invoice, Customers
-from .serializers import InvoiceDetailSerializer
+from .models import Invoice, Customers, Users, Sales_Persons, Name, Comments
+from .serializers import InvoiceDetailSerializer, InvoiceSerializer, NameSerializer, SalesPersonsSerializer
 from rest_framework.decorators import api_view
+import json
+from datetime import datetime
+from collections import OrderedDict
 
 @api_view(['POST'])
 def get_paid_Invoice(request):
@@ -514,42 +497,41 @@ def get_paid_Invoice(request):
 
         user_id = Users.objects.get(id=data.get('user_id'))
         lis = []
-        sales = Sales_Persons.objects
-        data = SalesPersonsSerializer(sales, many=True).data
-        for sale in data:
+        sales = Sales_Persons.objects.all()
+        sales_data = SalesPersonsSerializer(sales, many=True).data
+        for sale in sales_data:
             lis.append(sale['name'])
-        # Subquery to get the promised_date of the last comment for each customer
 
-        customers = Customers.objects.filter(user = user_id)
-        #print(customers)
-        # Annotate customers with the promised_date of the last comment
-        if len(customers)>0:
+        customers = Customers.objects.filter(user=user_id)
+        
+        if len(customers) > 0:
             customer_data = []
             for customer in customers:
-                # Filter unpaid invoices
-                named = Name.objects.filter(user = user_id, invoice = customer)
-                names = NameSerializer(named, many = True).data
+                named = Name.objects.filter(user=user_id, invoice=customer)
+                names = NameSerializer(named, many=True).data
                 customer_dict = InvoiceSerializer(customer).data
                 customer_dict['names'] = names
-                invoices = Invoice.objects.filter(user = user_id , invoice=customer, paid = True, old = False, new = False).order_by('-paid_date', '-pending')
+                invoices = Invoice.objects.filter(user=user_id, invoice=customer, paid=True, old=False, new=False).order_by('-paid_date', '-pending')
                 paid_amount = 0
                 for each in invoices:
                     paid_amount += each.pending
                 if len(invoices) > 0:
-                    customer_dict['last_payment_date'] = datetime.datetime.strptime(str(invoices[0].paid_date) , '%Y-%m-%d').strftime('%d-%m-%Y')
+                    last_invoice = invoices[0]
+                    if last_invoice.paid_date:
+                        customer_dict['last_payment_date'] = last_invoice.paid_date.strftime('%d-%m-%Y')
+                    else:
+                        customer_dict['last_payment_date'] = None
                     customer_dict['amount_paid'] = paid_amount
                     customer_dict['number_of_invoices'] = len(invoices)
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(invoices, many=True).data
                     customer_data.append(customer_dict)
-
         else:
             customer_data = []
 
-        customer_data.sort(key=lambda x: datetime.datetime.strptime(x['last_payment_date'], '%d-%m-%Y'), reverse=True)
-        # Return the ordered customers as JSON response
-        return JsonResponse({'sales_data': data , 'sales': lis, 'customer_data': customer_data}, safe=False)
+        customer_data.sort(key=lambda x: datetime.strptime(x['last_payment_date'], '%d-%m-%Y') if x['last_payment_date'] else datetime.max, reverse=True)
+
+        return JsonResponse({'sales_data': sales_data, 'sales': lis, 'customer_data': customer_data}, safe=False)
     else:
-        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
     
 from collections import OrderedDict
@@ -667,7 +649,7 @@ def get_to_do_invoices(request):
         
         # Sort the remaining date keys and add them to the ordered_full_data
         sorted_date_keys = sorted(full_data.keys(), key=lambda x: (
-            datetime.datetime.strptime(re.sub(r'\b(\d+)(st|nd|rd|th)\b', r'\1', x), '%d %B, %A') 
+            datetime.strptime(re.sub(r'\b(\d+)(st|nd|rd|th)\b', r'\1', x), '%d %B, %A') 
             if x != 'unknown_date' 
             else datetime.datetime.max
         ))
@@ -800,7 +782,7 @@ def login(request):
             customers = Customers.objects.filter(user = get_object_or_404(Users, id = users[0].id))
             if users[0].password == password:
                 #print(''yes')
-                return JsonResponse({'id': users[0].id, 'username': users[0].username, 'customers' : len(customers)})
+                return JsonResponse({'id': users[0].id, 'username': users[0].username,'user_role' : users[0].role, 'customers' : len(customers)})
             
         return JsonResponse({'error': 'Incorrect password'}, status=400)
 
@@ -928,28 +910,40 @@ from .serializers import NameSerializer
 def create_customer_name(request):
     data = json.loads(request.body)
     user = get_object_or_404(Users, id = data.get('user')).id
-    invoice = get_object_or_404(Customers, user = data.get('user'), account = data.get('invoice')).account
+    invoice = get_object_or_404(Customers, user = data.get('user'), account = data.get('invoice'))
+    credit = data.get('credit_period')
+    if credit:
+        print(credit)
+        invoice.credit_period = credit
+        over_due = 0
+        invoice_list = Invoice.objects.filter(user=data.get('user'), days_passed__gt=credit)
+        for each in invoice_list:
+            over_due+= each.pending
+        invoice.over_due = over_due
+        invoice.save()
+        print(invoice.credit_period)
     name = data.get('name')
     phone_number = data.get('phone_number')
+    if name and phone_number:
+        form = {
+            'user': user,
+            'invoice': invoice.account,
+            'name': name,
+            'phone_number': phone_number,
 
-    form = {
-        'user': user,
-        'invoice': invoice,
-        'name': name,
-        'phone_number': phone_number,
-
-    }
-    serializer = NameSerializer(data=request.data)
-    if serializer.is_valid():
-        name = Name.objects.create(
-            user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
-            invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
-            name = serializer.validated_data.get('name'),
-            phone_number = serializer.validated_data.get('phone_number'),
-            
-        )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        }
+        serializer = NameSerializer(data=request.data)
+        if serializer.is_valid():
+            name = Name.objects.create(
+                user = get_object_or_404(Users, id=serializer.validated_data.get('user')),
+                invoice = get_object_or_404(Customers,user =serializer.validated_data.get('user'), account = serializer.validated_data.get('invoice')),
+                name = serializer.validated_data.get('name'),
+                phone_number = serializer.validated_data.get('phone_number'),
+                
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response('default')
 
 @api_view(['POST'])
 def get_review_invoices(request):
@@ -1069,9 +1063,257 @@ def bulk_invoice_acceptance(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-def bulk_credit_period_change():
-    customers =  Customers.objects.all()
-    for customer in customers:
-        customer.credit_period = 90
-        customer.save()
-bulk_credit_period_change()
+# def bulk_credit_period_change():
+#     customers =  Customers.objects.all()
+#     for customer in customers:
+#         customer.credit_period = 90
+#         customer.save()
+# bulk_credit_period_change()
+
+
+@api_view(['POST'])
+def get_all_sales(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+
+        sales = Sales_Persons.objects
+        data = SalesPersonsSerializer(sales, many=True).data
+        return JsonResponse({'sales_data': data}, safe=False)
+    else:
+        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+    
+
+@api_view(['POST'])
+def get_all_accountants(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+
+        accountants = Users.objects.filter(role = 'Accountant')
+        data = UsersSerializer(accountants, many=True).data
+        return JsonResponse({'accountants': data}, safe=False)
+    else:
+        # Handle other HTTP methods (e.g., POST, PUT, DELETE)
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+    
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+import json
+from datetime import datetime, timedelta
+from .models import Users, Customers, Comments
+
+@api_view(['POST'])
+def manager_1(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        accountant = Users.objects.get(username=data.get('accountant'))
+        customers = Customers.objects.filter(user=accountant)
+        total_outstanding = 0
+        total_over_due = 0
+        projected_all_col = 0
+        projected_this_month_col = 0
+        projected_this_week_col = 0
+        projected_today_col = 0
+
+        # Define date ranges
+        today = datetime.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+        start_of_month = today.replace(day=1)
+        end_of_month = (start_of_month.replace(month=(start_of_month.month % 12) + 1, day=1) - timedelta(days=1))
+
+        for customer in customers:
+            total_outstanding += customer.total_due
+            total_over_due += customer.over_due
+            comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False).order_by('-id')
+
+            if comments.exists():
+                comment = comments.first()
+                if comment.remarks.split('.')[0] != "No Response":
+                    projected_all_col += comment.amount_promised
+
+                    # Parse dates if they are in string format, otherwise use them directly
+                    if isinstance(comment.promised_date, str):
+                        try:
+                            promised_date = datetime.strptime(comment.promised_date, '%Y-%m-%d').date()
+                        except ValueError:
+                            promised_date = None
+                    else:
+                        promised_date = comment.promised_date
+
+                    if isinstance(comment.follow_up_date, str):
+                        try:
+                            follow_up_date = datetime.strptime(comment.follow_up_date, '%Y-%m-%d').date()
+                        except ValueError:
+                            follow_up_date = None
+                    else:
+                        follow_up_date = comment.follow_up_date
+
+                    # Check for this month
+                    if (promised_date and start_of_month <= promised_date <= end_of_month) or \
+                    (follow_up_date and start_of_month <= follow_up_date <= end_of_month):
+                        projected_this_month_col += comment.amount_promised
+
+                    # Check for this week
+                    if (promised_date and start_of_week <= promised_date <= end_of_week) or \
+                    (follow_up_date and start_of_week <= follow_up_date <= end_of_week):
+                        projected_this_week_col += comment.amount_promised
+
+                    # Check for today
+                    if (promised_date == today) or (follow_up_date == today):
+                        projected_today_col += comment.amount_promised
+
+        projected_collection = {
+            'projected_all_col': projected_all_col,
+            'projected_this_month_col': projected_this_month_col,
+            'projected_this_week_col': projected_this_week_col,
+            'projected_today_col': projected_today_col,
+        }
+
+        return JsonResponse({'total_outstanding': total_outstanding, 'total_over_due': total_over_due, 'projected_collection': projected_collection}, safe=False)
+    else:
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+import json
+from datetime import datetime, timedelta
+from .models import Users, Invoice
+
+@api_view(['POST'])
+def manager_2(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        accountant = Users.objects.get(username=data.get('accountant'))
+        customers = Customers.objects.filter(user = accountant)
+        account_details = {
+            'today': [],
+            'yesterday': [],
+            'last_seven_days': [],
+            'this_month': [],
+        }
+        accounts_reached = {
+            'total': 0,
+            'today': 0,
+            'yesterday': 0,
+            'last_seven_days': 0,
+            'this_month': 0,
+        }
+
+        # Define date ranges
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+        last_seven_days_start = today - timedelta(days=7)
+        start_of_month = today.replace(day=1)
+
+        for customer in customers:
+            comments = Comments.objects.filter(user = accountant, invoice = customer, comment_paid = False).order_by('-id')
+            if len(comments) > 0:
+                comment = comments[0]
+                accounts_reached['total'] += 1
+
+                follow_up_date =comment.follow_up_date
+                promised_date = comment.promised_date
+
+                if follow_up_date and  isinstance(follow_up_date, str):
+                    follow_up_date = datetime.strptime(follow_up_date, '%Y-%m-%d').date()
+                if promised_date and  isinstance(promised_date, str):
+                    promised_date = datetime.strptime(promised_date, '%Y-%m-%d').date()
+
+                if follow_up_date or promised_date:
+                    if (follow_up_date and follow_up_date == today) or (promised_date and promised_date == today):
+                        accounts_reached['today'] += 1
+                        account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+
+                    # Check for yesterday
+                    if (follow_up_date and follow_up_date == yesterday) or (promised_date and promised_date == yesterday):
+                        accounts_reached['yesterday'] += 1
+                        account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+
+                    # Check for last seven days
+                    if (follow_up_date and last_seven_days_start <= follow_up_date <= today) or (promised_date and  last_seven_days_start <= promised_date <= today):
+                        accounts_reached['last_seven_days'] += 1
+                        account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+
+                    # Check for this month
+                    if (follow_up_date and start_of_month <= follow_up_date <= today) or (promised_date and  start_of_month <= promised_date <= today):
+                        accounts_reached['this_month'] += 1
+                        account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+
+                response_data = {
+                    'accounts_reached': accounts_reached,
+                    'account_details': account_details
+                }
+
+        return JsonResponse(response_data, safe=False)
+    else:
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+import json
+from datetime import datetime, timedelta
+from .models import Users, Invoice
+
+@api_view(['POST'])
+def manager_3(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        accountant = Users.objects.get(username=data.get('accountant'))
+        invoices = Invoice.objects.filter(user=accountant, paid=True).order_by('-paid_date')
+        account_details = {
+            'today': [],
+            'yesterday': [],
+            'last_seven_days': [],
+            'this_month': [],
+        }
+        amount_collected = {
+            'total': 0,
+            'today': 0,
+            'yesterday': 0,
+            'last_seven_days': 0,
+            'this_month': 0,
+        }
+
+        # Define date ranges
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+        last_seven_days_start = today - timedelta(days=7)
+        start_of_month = today.replace(day=1)
+
+        for invoice in invoices:
+            amount_collected['total'] += invoice.pending
+
+            paid_date = invoice.paid_date
+            if isinstance(paid_date, str):
+                paid_date = datetime.strptime(paid_date, '%Y-%m-%d').date()
+
+            # Check for today
+            if paid_date == today:
+                amount_collected['today'] += invoice.pending
+                account_details['today'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+            # Check for yesterday
+            if paid_date == yesterday:
+                amount_collected['yesterday'] += invoice.pending
+                account_details['yesterday'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+            # Check for last seven days
+            if last_seven_days_start <= paid_date <= today:
+                amount_collected['last_seven_days'] += invoice.pending
+                account_details['last_seven_days'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+            # Check for this month
+            if start_of_month <= paid_date <= today:
+                amount_collected['this_month'] += invoice.pending
+                account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+        response_data = {
+            'amount_collected': amount_collected,
+            'account_details': account_details
+        }
+
+        return JsonResponse(response_data, safe=False)
+    else:
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)

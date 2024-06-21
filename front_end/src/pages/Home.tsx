@@ -165,6 +165,11 @@ const Home: React.FC = () => {
     setName(Name)
   };
 
+  const [credit_period, setcredit_period] = useState<number | null>(null)
+  const updatecredit_period = (credit_period: number | null) => {
+    setcredit_period(credit_period)
+  };
+
   const updateNum = (Num: string) => {
     setNum(Num)
   };
@@ -189,7 +194,7 @@ const Home: React.FC = () => {
   const handleSubmit = async (account: string) => {
     console.log('Form submitted');
     // Add more logs to inspect the form elements and values
-    if (Name || Num || Object.keys(invoiceSalesPersons).length > 0) {
+    if (Name || credit_period || Num || Object.keys(invoiceSalesPersons).length > 0) {
       try {
         let customerUpdateSuccess = false;
   
@@ -202,8 +207,9 @@ const Home: React.FC = () => {
           body: JSON.stringify({
             invoice: account,
             user: user_id,
-            name: Name,
-            phone_number: Num
+            name: Name || null,
+            phone_number: Num || null,
+            credit_period: credit_period,
           }),
         });
   
@@ -639,6 +645,7 @@ const Home: React.FC = () => {
                 <div>Name</div>
                 <div>(Phone Number)</div>
               </div>
+              <div className="flex h-auto w-28 items-center justify-center">Credit Period</div>
               <div className="flex h-auto w-28 items-center justify-center">Total Due</div>
               <div className="flex h-auto w-28 items-center justify-center">Over Due</div>
               <div className="flex h-auto w-28 items-center justify-center">Invoices</div>
@@ -688,6 +695,20 @@ const Home: React.FC = () => {
                     )}
 
                   </div>
+                  <div className="flex h-auto w-28 justify-center items-center">
+                    {Edit && acc === account.account ? (
+                      <div>
+                        <input
+                          className='w-28 h-7 border border-gray-500 bg-gray-300 rounded-xl justify-center text-center'
+                          type="number"
+                          onChange={(e) => updatecredit_period(Number(e.target.value))}
+                          placeholder='credit'
+                        />
+                      </div>
+                      ) : (
+                      <div>{account.credit_period}</div>
+                    )}
+                    </div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.total_due}</div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.over_due}</div>
                   <div className="flex h-auto w-28 justify-center items-center">{account.invoices}</div>

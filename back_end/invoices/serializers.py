@@ -71,7 +71,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customers
-        fields = ['id', 'user', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due', 'promised_amount', 'promised_date', 'invoices', 'invoice_details', 'comments']
+        fields = ['id', 'user', 'account', 'name', 'phone_number', 'optimal_due', 'threshold_due', 'over_due', 'total_due', 'promised_amount', 'promised_date', 'invoices', 'invoice_details', 'comments', 'credit_period']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

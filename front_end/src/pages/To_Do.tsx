@@ -171,73 +171,6 @@ const To_DO: React.FC = () => {
       // Now you can use the filteredComments array as needed
     }
   };
-
-
-
-  const handleSubmit = async (account: string) => {
-    console.log('Form submitted');
-    // Add more logs to inspect the form elements and values
-    if (date || Name || Num || Object.keys(invoiceSalesPersons).length > 0) {
-      try {
-        let customerUpdateSuccess = false;
-  
-        // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/update-customer/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            account,
-            user: user_id,
-            promised_amount: null,
-            promised_date: date || null,
-            name: Name,
-            phone_number: Num
-          }),
-        });
-  
-        if (response.ok) {
-          console.log('Promised details updated successfully');
-          customerUpdateSuccess = true;
-        } else {
-          console.error('Failed to update promised details');
-        }
-  
-        // If invoiceSalesPersons is not empty, update sales persons for invoices
-        if (Object.keys(invoiceSalesPersons).length > 0) {
-          const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              user_id : user_id,
-              sales_Data: salesData
-            }),
-          });
-          if (salesResponse.ok) {
-            console.log('Sales persons for invoices updated successfully');
-          } else {
-            console.error('Failed to update sales persons for invoices');
-          }
-        }
-  
-        // If customer update was successful, proceed with other actions
-        if (customerUpdateSuccess) {
-          setdate(null);
-          setIsEdit(false);
-          setName(null);
-          setNum(null);
-          setInvoiceSalesPersons({});
-          fetchData();
-        }
-      } catch (error) {
-        console.error('Error updating promised details:', error);
-      }
-    }
-  };
   
   const [remarks, setRemarks] = useState<string>('');
   const [selectedOption, setSelectedOption] = useState<string>('Select Response');
@@ -292,6 +225,16 @@ const To_DO: React.FC = () => {
   const [invoices_paid, set_invoices_paid] = useState<boolean>(false);
   const handleinvoices_paidstatus = () => {
     if (selectedRefNumbers.length > 0) {
+      if (invoices_paid == false) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate());
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        setcomment_paid_date(`${year}-${month}-${day}`);
+      } else {
+        setcomment_paid_date('')
+      }
       set_invoices_paid(!invoices_paid);
       setprom_amount(0.00);
     }
@@ -378,8 +321,6 @@ const To_DO: React.FC = () => {
         console.error('Error creating comment:', error);
       }
       
-      handleSubmit(account);
-
     }
   };
 
@@ -770,7 +711,7 @@ const To_DO: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody>
-                          {comdata.slice(-2).reverse().map((comment: CommentInfo) => (
+                          {comdata.slice(0, 2).map((comment: CommentInfo) => (
                               <tr key={comment.id}>
                                 <td className="text-center border border-gray-400 p-2">{comment.date}</td>
                                 <td className="text-center border border-gray-400 p-2">{comment.invoice_list}</td>

@@ -196,8 +196,9 @@ const Pending: React.FC = () => {
           body: JSON.stringify({
             invoice: account,
             user: user_id,
-            name: Name,
-            phone_number: Num
+            name: Name || null,
+            phone_number: Num || null,
+            credit_period: null
           }),
         });
   
@@ -388,6 +389,7 @@ const Pending: React.FC = () => {
       
         if (response.ok) {
           console.log('Comment created successfully');
+          fetchData()
           backcomsec(account)
         } else {
           console.error('Failed to create comment');

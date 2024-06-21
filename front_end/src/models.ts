@@ -54,6 +54,7 @@ export interface AccountInfo {
   promised_amount: number;
   promised_date: string;
   premium_user: boolean;
+  credit_period: number;
 }
   
 export interface DataByDate {
@@ -79,6 +80,7 @@ export interface Data_by_Day {
   invoice_list: string;
   follow_up_date: string;
   sales_person: string;
+  credit_period: number;
 }
 
 
