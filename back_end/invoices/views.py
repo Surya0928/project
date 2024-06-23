@@ -25,7 +25,7 @@ def get_all_invoices(request):
         data = SalesPersonsSerializer(sales, many=True).data
         for sale in data:
             lis.append(sale['name'])
-        # Subquery to get the promised_date of the last comment for each customer
+        # Subquery to get the  of the last comment for each customer
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
         customers = Customers.objects.filter(user = user_id)
@@ -1106,8 +1106,12 @@ from .models import Users, Customers, Comments
 def manager_1(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        accountant = Users.objects.get(username=data.get('accountant'))
-        customers = Customers.objects.filter(user=accountant)
+        
+        if data.get('accountant') == 'all':
+            customers = Customers.objects.all()
+        else:
+            accountant = Users.objects.get(username=data.get('accountant'))
+            customers = Customers.objects.filter(user=accountant)
         total_outstanding = 0
         total_over_due = 0
         projected_all_col = 0
@@ -1125,7 +1129,11 @@ def manager_1(request):
         for customer in customers:
             total_outstanding += customer.total_due
             total_over_due += customer.over_due
-            comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False).order_by('-id')
+            if data.get('accountant') == 'all':
+                comments = Comments.objects.filter(comment_paid=False).order_by('-id')
+            else:
+                comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False).order_by('-id')
+            
 
             if comments.exists():
                 comment = comments.first()
@@ -1184,8 +1192,12 @@ from .models import Users, Invoice
 def manager_2(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        accountant = Users.objects.get(username=data.get('accountant'))
-        customers = Customers.objects.filter(user = accountant)
+        
+        if data.get('accountant') == 'all':
+            customers = Customers.objects.all()
+        else:
+            accountant = Users.objects.get(username=data.get('accountant'))
+            customers = Customers.objects.filter(user=accountant)
         account_details = {
             'today': [],
             'yesterday': [],
@@ -1207,38 +1219,39 @@ def manager_2(request):
         start_of_month = today.replace(day=1)
 
         for customer in customers:
-            comments = Comments.objects.filter(user = accountant, invoice = customer, comment_paid = False).order_by('-id')
+            
+            if data.get('accountant') == 'all':
+                comments = Comments.objects.filter(comment_paid=False).order_by('-id')
+            else:
+                comments = Comments.objects.filter(user = accountant, invoice = customer, comment_paid = False).order_by('-id')
             if len(comments) > 0:
                 comment = comments[0]
                 accounts_reached['total'] += 1
 
-                follow_up_date =comment.follow_up_date
-                promised_date = comment.promised_date
+                date =comment.date
 
-                if follow_up_date and  isinstance(follow_up_date, str):
-                    follow_up_date = datetime.strptime(follow_up_date, '%Y-%m-%d').date()
-                if promised_date and  isinstance(promised_date, str):
-                    promised_date = datetime.strptime(promised_date, '%Y-%m-%d').date()
+                if date and  isinstance(date, str):
+                    date = datetime.strptime(date, '%Y-%m-%d').date()
 
-                if follow_up_date or promised_date:
-                    if (follow_up_date and follow_up_date == today) or (promised_date and promised_date == today):
+                if date:
+                    if (date and date == today):
                         accounts_reached['today'] += 1
-                        account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                        account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'date' :comment.date})
 
                     # Check for yesterday
-                    if (follow_up_date and follow_up_date == yesterday) or (promised_date and promised_date == yesterday):
+                    if (date and date == yesterday):
                         accounts_reached['yesterday'] += 1
-                        account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                        account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'date' :comment.date})
 
                     # Check for last seven days
-                    if (follow_up_date and last_seven_days_start <= follow_up_date <= today) or (promised_date and  last_seven_days_start <= promised_date <= today):
+                    if (date and last_seven_days_start <= date <= today):
                         accounts_reached['last_seven_days'] += 1
-                        account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                        account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'date' :comment.date})
 
                     # Check for this month
-                    if (follow_up_date and start_of_month <= follow_up_date <= today) or (promised_date and  start_of_month <= promised_date <= today):
+                    if (date and start_of_month <= date <= today):
                         accounts_reached['this_month'] += 1
-                        account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'follow_up_date' :comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                        account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person, 'date' :comment.date})
 
                 response_data = {
                     'accounts_reached': accounts_reached,
@@ -1260,8 +1273,13 @@ from .models import Users, Invoice
 def manager_3(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        accountant = Users.objects.get(username=data.get('accountant'))
-        invoices = Invoice.objects.filter(user=accountant, paid=True).order_by('-paid_date')
+        
+        if data.get('accountant') == 'all':
+            invoices = Invoice.objects.filter(paid=True).order_by('-paid_date')
+        else:
+            accountant = Users.objects.get(username=data.get('accountant'))
+            invoices = Invoice.objects.filter(user=accountant, paid=True).order_by('-paid_date')
+        
         account_details = {
             'today': [],
             'yesterday': [],

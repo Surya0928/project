@@ -317,6 +317,7 @@ const Manager: React.FC = () => {
           <option value='' disabled>
             Select an accountant
           </option>
+          <option value='all'>All</option> {/* Add this option */}
           {accountants.map((accountant) => (
             <option key={accountant.id} value={accountant.id}>
               {accountant.username}
@@ -330,6 +331,7 @@ const Manager: React.FC = () => {
           Enter
         </button>
       </div>
+
       <div id='section-1' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
         <div className='flex space-x-4'>
           <button
