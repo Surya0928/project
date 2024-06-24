@@ -1124,12 +1124,12 @@ def manager_1(request):
 
         if data.get('accountant') == 'all':
             accountants = Users.objects.filter(role = 'Accountant')
-            for accountant in accountants:
-                customers = Customers.objects.filter(user=accountant)
+            for each in accountants:
+                customers = Customers.objects.filter(user=each)
                 for customer in customers:
                     total_outstanding += customer.total_due
                     total_over_due += customer.over_due
-                    comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False).order_by('-id')
+                    comments = Comments.objects.filter(user=each, invoice=customer, comment_paid=False).order_by('-id')
                     
 
                     if comments.exists():
@@ -1212,52 +1212,6 @@ def manager_1(request):
                         # Check for today
                         if (promised_date == today) or (follow_up_date == today):
                             projected_today_col += comment.amount_promised
-
-        
-        for customer in customers:
-            total_outstanding += customer.total_due
-            total_over_due += customer.over_due
-            if data.get('accountant') == 'all':
-                comments = Comments.objects.filter(comment_paid=False).order_by('-id')
-            else:
-                comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False).order_by('-id')
-            
-
-            if comments.exists():
-                comment = comments.first()
-                if comment.remarks.split('.')[0] != "No Response":
-                    projected_all_col += comment.amount_promised
-
-                    # Parse dates if they are in string format, otherwise use them directly
-                    if isinstance(comment.promised_date, str):
-                        try:
-                            promised_date = datetime.strptime(comment.promised_date, '%Y-%m-%d').date()
-                        except ValueError:
-                            promised_date = None
-                    else:
-                        promised_date = comment.promised_date
-
-                    if isinstance(comment.follow_up_date, str):
-                        try:
-                            follow_up_date = datetime.strptime(comment.follow_up_date, '%Y-%m-%d').date()
-                        except ValueError:
-                            follow_up_date = None
-                    else:
-                        follow_up_date = comment.follow_up_date
-
-                    # Check for this month
-                    if (promised_date and start_of_month <= promised_date <= end_of_month) or \
-                    (follow_up_date and start_of_month <= follow_up_date <= end_of_month):
-                        projected_this_month_col += comment.amount_promised
-
-                    # Check for this week
-                    if (promised_date and start_of_week <= promised_date <= end_of_week) or \
-                    (follow_up_date and start_of_week <= follow_up_date <= end_of_week):
-                        projected_this_week_col += comment.amount_promised
-
-                    # Check for today
-                    if (promised_date == today) or (follow_up_date == today):
-                        projected_today_col += comment.amount_promised
 
         projected_collection = {
             'projected_all_col': projected_all_col,

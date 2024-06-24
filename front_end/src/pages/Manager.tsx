@@ -153,6 +153,7 @@ const Manager: React.FC = () => {
         setaccounts_reached_data(data);
         set_accounts_reached(parseFloat(data.accounts_reached.today)); // Convert to number if needed
         setaccounts_reached_filtered_data(data.account_details.today);
+        setaccounts_reached_filter('today')
       } else {
         console.error('Failed to fetch manager data');
       }
@@ -177,6 +178,7 @@ const Manager: React.FC = () => {
         setamount_collected_data(data);
         set_amount_collected(parseFloat(data.amount_collected.today)); // Convert to number if needed
         setamount_collected_filtered_data(data.account_details.today);
+        setamount_collected_filter('today')
       } else {
         console.error('Failed to fetch manager data');
       }
