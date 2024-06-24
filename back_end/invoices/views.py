@@ -1234,24 +1234,28 @@ def manager_2(request):
                     date = datetime.strptime(date, '%Y-%m-%d').date()
 
                 if date:
+                    if comment.sales_person:
+                        sales_person = comment.sales_person.name
+                    else:
+                        sales_person = comment.sales_person
                     if (date and date == today):
                         accounts_reached['today'] += 1
-                        account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person.name, 'date' :comment.date})
+                        account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date})
 
                     # Check for yesterday
                     if (date and date == yesterday):
                         accounts_reached['yesterday'] += 1
-                        account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person.name, 'date' :comment.date})
+                        account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date})
 
                     # Check for last seven days
                     if (date and last_seven_days_start <= date <= today):
                         accounts_reached['last_seven_days'] += 1
-                        account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person.name, 'date' :comment.date})
+                        account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date})
 
                     # Check for this month
                     if (date and start_of_month <= date <= today):
                         accounts_reached['this_month'] += 1
-                        account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : comment.sales_person.name, 'date' :comment.date})
+                        account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date})
 
                 response_data = {
                     'accounts_reached': accounts_reached,
