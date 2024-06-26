@@ -106,6 +106,7 @@ const Review: React.FC = () => {
         },
         body: JSON.stringify({
           id: invoice.id,
+          user: user_id,
           paid_status: invoicePaidStatus[invoice.id] || false,
           paid_date: invoicePaidDate[invoice.id] || null,
         }),

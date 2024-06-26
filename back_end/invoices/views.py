@@ -99,6 +99,7 @@ def update_invoice_paid_status(request):
     try:
         # Parse input parameters from JSON data
         data = json.loads(request.body)
+        user = get_object_or_404(Users, id=data.get('user'))
         invoice = data.get('invoice_id')
         paid_status = data.get('paid_status')
         paid_date = data.get('paid_date')
@@ -113,6 +114,11 @@ def update_invoice_paid_status(request):
         invoice.paid_date = paid_date
         invoice.save()
         if data.get('paid_status') == True:
+            query |= Q(invoice_list__icontains=invoice.ref_no)
+            comments = Comments.objects.filter(user=user, invoice=customer).filter(query)
+            for every in comments:
+                every.comment_paid =  True
+                every.save()
             if invoice.days_passed > customer.credit_period:
                 customer.over_due = customer.over_due - invoice.pending
             customer.total_due = customer.total_due - invoice.pending
@@ -405,10 +411,10 @@ def create_comment(request):
                 query = Q()
                 for ref_no in invoice_list:
                     query |= Q(invoice_list__icontains=ref_no)
-                comments = Comments.objects.filter(user=user_id, invoice=customer).filter(query)
-                for every in comments:
-                    every.comment_paid =  True
-                    every.save()
+                    comments = Comments.objects.filter(user=user_id, invoice=customer).filter(query)
+                    for every in comments:
+                        every.comment_paid =  True
+                        every.save()
                     
         # else:
             ##print('no')
@@ -1006,6 +1012,7 @@ def old_invoice_acceptance(request):
         # Parse input parameters from JSON data
         data = json.loads(request.body)
         id = data.get('id')
+        user = get_object_or_404(Users, id = data.get('user'))
         paid_status = data.get('paid_status')
         paid_date =  data.get('paid_date')
 
@@ -1016,6 +1023,12 @@ def old_invoice_acceptance(request):
         invoice.old = False
         invoice.paid = paid_status
         if paid_status == True:
+            query = Q()
+            query |= Q(invoice_list__icontains=invoice.ref_no)
+            comments = Comments.objects.filter(user=user, invoice=customer).filter(query)
+            for every in comments:
+                every.comment_paid =  True
+                every.save()
             invoice.paid_date = paid_date
         invoice.save()
         if invoice.days_passed > customer.credit_period:
@@ -1376,7 +1389,41 @@ def manager_3(request):
         if data.get('accountant') == 'all':
             accountants = Users.objects.filter(role = 'Accountant')
             for each in accountants:
-                invoices = Invoice.objects.filter(user = each,paid=True).order_by('-paid_date')
+                customers = Customers.objects.filter(user = each)
+                for customer in customers:
+                    invoices = Invoice.objects.filter(user = each,invoice = customer,paid=True).order_by('-paid_date')
+                    for invoice in invoices:
+                        amount_collected['total'] += invoice.pending
+
+                        paid_date = invoice.paid_date
+                        if isinstance(paid_date, str):
+                            paid_date = datetime.strptime(paid_date, '%Y-%m-%d').date()
+
+                        # Check for today
+                        if paid_date == today:
+                            amount_collected['today'] += invoice.pending
+                            account_details['today'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+                        # Check for yesterday
+                        if paid_date == yesterday:
+                            amount_collected['yesterday'] += invoice.pending
+                            account_details['yesterday'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+                        # Check for last seven days
+                        if last_seven_days_start <= paid_date <= today:
+                            amount_collected['last_seven_days'] += invoice.pending
+                            account_details['last_seven_days'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+                        # Check for this month
+                        if start_of_month <= paid_date <= today:
+                            amount_collected['this_month'] += invoice.pending
+                            account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+
+        else:
+            accountant = Users.objects.get(username=data.get('accountant'))
+            customers = Customers.objects.filter(user = accountant)
+            for customer in customers:
+                invoices = Invoice.objects.filter(user=accountant,invoice=customer, paid=True).order_by('-paid_date')
                 for invoice in invoices:
                     amount_collected['total'] += invoice.pending
 
@@ -1404,36 +1451,6 @@ def manager_3(request):
                         amount_collected['this_month'] += invoice.pending
                         account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
-        else:
-            accountant = Users.objects.get(username=data.get('accountant'))
-            invoices = Invoice.objects.filter(user=accountant, paid=True).order_by('-paid_date')
-            for invoice in invoices:
-                amount_collected['total'] += invoice.pending
-
-                paid_date = invoice.paid_date
-                if isinstance(paid_date, str):
-                    paid_date = datetime.strptime(paid_date, '%Y-%m-%d').date()
-
-                # Check for today
-                if paid_date == today:
-                    amount_collected['today'] += invoice.pending
-                    account_details['today'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
-
-                # Check for yesterday
-                if paid_date == yesterday:
-                    amount_collected['yesterday'] += invoice.pending
-                    account_details['yesterday'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
-
-                # Check for last seven days
-                if last_seven_days_start <= paid_date <= today:
-                    amount_collected['last_seven_days'] += invoice.pending
-                    account_details['last_seven_days'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
-
-                # Check for this month
-                if start_of_month <= paid_date <= today:
-                    amount_collected['this_month'] += invoice.pending
-                    account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
-
 
 
         response_data = {
@@ -1442,5 +1459,89 @@ def manager_3(request):
         }
 
         return JsonResponse(response_data, safe=False)
+    else:
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+from django.http import JsonResponse
+import json
+
+@api_view(['POST'])
+def manager_4(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        conditions = data.get('data')
+        customers_to_include = []
+        def code(conditions, condition_counts):
+            overall = ''
+            for condition in range(len(conditions)):
+                if condition != len(conditions) -1:
+                    overall += f'{str(condition_counts[conditions[condition]["condition"]])} > {conditions[condition]["count"]} {conditions[condition]["conjunction"].lower()} '
+                else:
+                    overall += f'{str(condition_counts[conditions[condition]["condition"]])} > {conditions[condition]["count"]}'
+            return(eval(overall))
+        if data.get('accountant') == 'all':
+            accountants = Users.objects.filter(role='Accountant')
+            for accountant in accountants:
+                customers = Customers.objects.filter(user=accountant)
+
+                for customer in customers:
+                    comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False)
+                    condition_counts = {'No Response' : 0, 'Requested Call Back' : 0, 'Other' : 0}
+                    for comment in comments:
+                        if '.' in comment.remarks:
+                            remark = comment.remarks.split('.')[0]
+                            print(remark, customer)
+                            print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
+                            if remark in condition_counts.keys():
+                                condition_counts[remark] += 1
+                            else:
+                                condition_counts['Other'] +=1
+                        else:
+                            condition_counts['Other'] +=1
+                    # print(condition_counts, customer.account)
+                    is_in = code(conditions, condition_counts)
+                    if is_in:
+                        # Account name, person name & contact number, number of comments, amount overdue, days overdue
+                        formated = {
+                            'account' : customer.account,
+                            'names' : NameSerializer(Name.objects.filter(user = accountant, invoice = customer), many = True).data,
+                            'number_of_comments' : len(comments),
+                            'amount_over_due' : customer.over_due,
+                            'days_overdue' : Invoice.objects.filter(user = accountant, invoice = customer).order_by('-days_passed')[0].days_passed
+                        }
+                        customers_to_include.append(formated)
+            
+        else:
+            accountant = get_object_or_404(Users, username = data.get('accountant'))
+            customers = Customers.objects.filter(user=accountant)
+
+            for customer in customers:
+                comments = Comments.objects.filter(user=accountant, invoice=customer, comment_paid=False)
+                condition_counts = {'No Response' : 0, 'Requested Call Back' : 0, 'Other' : 0}
+                for comment in comments:
+                    if '.' in comment.remarks:
+                        remark = comment.remarks.split('.')[0]
+                        print(remark, customer)
+                        print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
+                        if remark in condition_counts.keys():
+                            condition_counts[remark] += 1
+                        else:
+                            condition_counts['Other'] +=1
+                    else:
+                        condition_counts['Other'] +=1
+                # print(condition_counts, customer.account)
+                is_in = code(conditions, condition_counts)
+                if is_in:
+                    # Account name, person name & contact number, number of comments, amount overdue, days overdue
+                    formated = {
+                        'account' : customer.account,
+                        'names' : NameSerializer(Name.objects.filter(user = accountant, invoice = customer), many = True).data,
+                        'number_of_comments' : len(comments),
+                        'amount_over_due' : customer.over_due,
+                        'days_overdue' : Invoice.objects.filter(user = accountant, invoice = customer).order_by('-days_passed')[0].days_passed
+                    }
+                    customers_to_include.append(formated)
+        
+        return JsonResponse({'customers_to_include': customers_to_include, 'number_of_customers' : len(customers_to_include)}, safe=False)
     else:
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)

@@ -26,4 +26,5 @@ urlpatterns = [
     path('manager_1/', views.manager_1, name='manager_1'),
     path('manager_2/', views.manager_2, name='manager_2'),
     path('manager_3/', views.manager_3, name='manager_3'),
+    path('manager_4/', views.manager_4, name='manager_4'),
 ]

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
 import { useHistory } from 'react-router-dom';
@@ -61,8 +61,43 @@ interface AccountsReachedData {
   account_details: AccountsReachedAccountDetails;
 }
 
+export interface Each_Account_Name_List {
+  id: number;
+  invoice: string;
+  name: string;
+  phone_number : string;
+}
+
+interface DifficultAccountDetails {
+  account: string,
+  names: Each_Account_Name_List[],
+  number_of_comments: number,
+  amount_over_due: number,
+  days_overdue: number
+}
+
+interface DifficultAccounts {
+  number_of_customers : number;
+  customers_to_include : DifficultAccountDetails[];
+}
+
+type Filter = {
+  id: number;
+  condition: string;
+  count: string;
+  conjunction: string;
+};
+
+const initialFilter: Filter = {
+  id: 1,
+  condition: '',
+  count: '',
+  conjunction: '',
+};
 
 
+
+const options = ["No Response", "Requested Call Back", "Other"];
 
 const Manager: React.FC = () => {
   const history = useHistory();
@@ -82,6 +117,8 @@ const Manager: React.FC = () => {
   const [projected_amount, setProjectedAmount] = useState<number>(0);
   const [amount_collected, set_amount_collected] = useState<number>(0);
   const [accounts_reached, set_accounts_reached] = useState<number>(0);
+  const [difficult_accounts, set_difficult_accounts] = useState<number>(0);
+  const [difficult_accounts_data, set_difficult_accounts_data] = useState<DifficultAccountDetails[]>([]);
   const [amount_collected_filter, setamount_collected_filter] = useState<string>('today');
   const [accounts_reached_filter, setaccounts_reached_filter] = useState<string>('today');
   const [amount_collected_data, setamount_collected_data] = useState<AmountCollectedData | null>(null);
@@ -90,6 +127,7 @@ const Manager: React.FC = () => {
   const [accounts_reached_filtered_data, setaccounts_reached_filtered_data] = useState<AccountsReachedInvoiceDetails[]>([]);
   const [toggle_amount_collected_data, set_toggle_amount_collected_data] = useState<boolean>(false)
   const [toggle_accounts_reached_data, set_toggle_accounts_reached_data] = useState<boolean>(false)
+  const [toggle_difficult_accounts_data, set_toggle_difficult_accounts_data] = useState<boolean>(false)
 
 
   const fetchAccountants = async () => {
@@ -186,6 +224,28 @@ const Manager: React.FC = () => {
       console.error('Error fetching manager data:', error);
     }
   };
+
+  const fetchSection4Data = async () => {
+    try {
+      if (!selectedAccountant) return;
+      const response = await fetch('http://165.232.188.250:8080/manager_4/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accountant: selectedAccountant, data: filters }),
+      });
+      if (response.ok) {
+        const data: DifficultAccounts = await response.json();
+        set_difficult_accounts(data.number_of_customers)
+        set_difficult_accounts_data(data.customers_to_include)
+      } else {
+        console.error('Failed to fetch manager data');
+      }
+    } catch (error) {
+      console.error('Error fetching manager data:', error);
+    }
+  };
   
 
   useEffect(() => {
@@ -204,6 +264,7 @@ const Manager: React.FC = () => {
     fetchSection1Data()
     fetchSection2Data()
     fetchSection3Data()
+    setFilters([initialFilter])
   };
 
   const handleProjectedCollectionFilterChange = (filter: string) => {
@@ -305,7 +366,96 @@ const Manager: React.FC = () => {
     
   };
   
+  const section4_data = () => {
+    if (difficult_accounts > 0) {
+      set_toggle_difficult_accounts_data(!toggle_difficult_accounts_data);
+    }
+    
+  };
+  const [filters, setFilters] = useState<Filter[]>([initialFilter]);
 
+  const handleFilterChange = (id: number, field: keyof Filter, value: string) => {
+    const newFilters = filters.map(filter =>
+      filter.id === id ? { ...filter, [field]: value } : filter
+    );
+    setFilters(newFilters);
+  };
+
+  const addFilter = () => {
+    const lastFilter = filters[filters.length - 1];
+
+    // Check if the previous filter has condition and count filled
+    if (lastFilter.condition !== '' && lastFilter.count !== '') {
+      // Add conjunction dropdown for the previous filter
+      const updatedFilters = filters.map(filter =>
+        filter.id === lastFilter.id ? { ...filter, conjunction: 'AND' } : filter
+      );
+
+      // Add a new filter
+      setFilters([
+        ...updatedFilters,
+        { id: lastFilter.id + 1, condition: '', count: '', conjunction: '' }
+      ]);
+    }
+  };
+
+  const removeFilter = () => {
+    if (filters.length > 1) {
+      const updatedFilters = filters.slice(0, -1); // Remove the last filter
+      setFilters(updatedFilters);
+    }
+  };
+
+  const canAddFilter = () => {
+    const lastFilter = filters[filters.length - 1];
+    return lastFilter.condition !== '' && lastFilter.count !== '' && filters.length < 3;
+    
+  };
+
+  const canRemoveFilter = () => {
+    return filters.length > 1;
+  };
+
+  const renderFilter = (filter: Filter, index: number) => {
+    // Get the selected conditions to exclude them from the options
+    const selectedConditions = filters.map(f => f.condition);
+    const availableOptions = options.filter(option => !selectedConditions.includes(option) || option === filter.condition);
+
+    return (
+      <div key={filter.id} className="flex space-x-2 items-center mb-4">
+        <div>If</div>
+        <select
+          value={filter.condition}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => handleFilterChange(filter.id, 'condition', e.target.value)}
+          className="border border-gray-300 p-2 mr-2"
+        >
+          <option value="" disabled>Select Condition</option>
+          {availableOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+        <div>is greater than</div>
+        <input
+          type="number"
+          value={filter.count}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange(filter.id, 'count', e.target.value)}
+          className="border border-gray-300 w-20 p-2 mr-2"
+        />
+        <div>times</div>
+        {index !== 2 && (
+          <select
+            value={filter.conjunction}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleFilterChange(filter.id, 'conjunction', e.target.value)}
+            className="border border-gray-300 p-2 mr-2"
+          >
+            <option value="" disabled>Select Option</option>
+            <option value="AND">AND</option>
+            <option value="OR">OR</option>
+          </select>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className='flex flex-col items-center overflow-y-auto w-screen h-screen p-14 space-y-20'>
@@ -515,6 +665,79 @@ const Manager: React.FC = () => {
           </table>
         )}
       </div>
+      <div id='section-4' className="w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl">
+        <div className="flex flex-col space-y-4 bg-white pb-4 px-8  rounded shadow-md w-full max-w-2xl">
+          <div className='text-center font-bold text-3xl'>Filter</div>
+          {filters.map((filter, index) => renderFilter(filter, index))}
+          <div className="flex justify-between items-center">
+              <button
+                onClick={addFilter}
+                disabled={!canAddFilter()}
+                className="bg-blue-500 text-white p-2 rounded"
+              >
+                Add Filter
+              </button>
+              <button className='bg-blue-500 text-white p-2 rounded' onClick={() => fetchSection4Data()}>
+                Get Accounts
+              </button>
+              {canRemoveFilter() && (
+              <button
+                onClick={removeFilter}
+                className="bg-red-500 text-white p-2 rounded"
+              >
+                Remove Filter
+              </button>
+              )}
+
+
+          </div>
+        </div>
+        <div className='flex justify-around space-x-5'>
+          <div className={`container w-96 text-center py-2 ${difficult_accounts > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_difficult_accounts_data && difficult_accounts>0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section4_data()}>
+            Difficult Accounts : {difficult_accounts}
+          </div>
+        </div>
+        {toggle_difficult_accounts_data && difficult_accounts > 0 && (
+          <table className="table-auto w-full border-collapse border border-gray-400">
+            <thead>
+              <tr>
+                <th className="text-center border border-gray-400 p-2">Account</th>
+                <th className="text-center border border-gray-400 p-2">
+                  <div>Name</div>
+                  <div>(Phone Number)</div>
+                </th>
+                <th className="text-center border border-gray-400 p-2">Number of Comments </th>
+                <th className="text-center border border-gray-400 p-2">Amount Overdue</th>
+                <th className="text-center border border-gray-400 p-2">Days Overdue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {difficult_accounts_data.map((item, index) => (
+                <tr key={index}>
+                  <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                  <td className="flex flex-col h-16 overflow-y-auto justify-center items-center text-center border border-gray-400 p-2">
+                    {item.names.map((Name: Each_Account_Name_List) => (
+                      <div>
+                        <div>
+                            {Name.name}
+                        </div>
+                        <div>
+                            ({Name.phone_number})
+                        </div>
+                      </div>
+                    ))}
+                  </td>
+                  <td className="text-center border border-gray-400 p-2">{item.number_of_comments}</td>
+                  <td className="text-center border border-gray-400 p-2">{item.amount_over_due}</td>
+                  <td className="text-center border border-gray-400 p-2">{item.days_overdue}</td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+        )}
+      </div>
+
     </div>
   );
 };

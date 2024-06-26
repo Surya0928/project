@@ -338,7 +338,7 @@ const To_DO: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          
+          user : user_id,
           invoice_id: invoice.id,
           paid_status: !invoice.paid,
           paid_date: invoice.paid ? null : todayDate,
