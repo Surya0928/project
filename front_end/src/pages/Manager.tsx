@@ -41,12 +41,13 @@ interface AmountCollectedData {
 
 interface AccountsReachedInvoiceDetails {
   account: string;
-  invoice: string;
+  invoices: string;
+  date: string;
   amount: string;
   remarks: string;
- sales_person: string,
- follow_up_date :string,
- promised_payment_date: string
+  sales_person: string,
+  follow_up_date :string,
+  promised_payment_date: string
 }
 
 interface AccountsReachedAccountDetails {
@@ -577,6 +578,7 @@ const Manager: React.FC = () => {
               <tr>
                 <th className="text-center border border-gray-400 p-2">Account</th>
                 <th className="text-center border border-gray-400 p-2">Invoices</th>
+                <th className="text-center border border-gray-400 p-2">Date</th>
                 <th className="text-center border border-gray-400 p-2">Amount</th>
                 <th className="text-center border border-gray-400 p-2">Remarks</th>
                 <th className="text-center border border-gray-400 p-2">Sales person</th>
@@ -588,7 +590,8 @@ const Manager: React.FC = () => {
               {accounts_reached_filtered_data.map((item, index) => (
                 <tr key={index}>
                   <td className="text-center border border-gray-400 p-2">{item.account}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.invoice}</td>
+                  <td className="text-center border border-gray-400 p-2">{item.invoices}</td>
+                  <td className="text-center border border-gray-400 p-2">{item.date}</td>
                   <td className="text-center border border-gray-400 p-2">{item.amount}</td>
                   <td className="text-center border border-gray-400 p-2">{item.remarks}</td>
                   <td className="text-center border border-gray-400 p-2">{item.sales_person}</td>
