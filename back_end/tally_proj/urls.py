@@ -27,4 +27,6 @@ urlpatterns = [
     path('manager_2/', views.manager_2, name='manager_2'),
     path('manager_3/', views.manager_3, name='manager_3'),
     path('manager_4/', views.manager_4, name='manager_4'),
+    path('all_users/', views.all_users, name='all_users'),
+    path('create_user/', views.create_user, name='create_user'),
 ]

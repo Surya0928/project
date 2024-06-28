@@ -34,7 +34,7 @@ const Login: React.FC = () => {
                   history.push('/csv_add')
                 )
                 if (data['user_role'] === 'Manager') (
-                  history.push('/manager')
+                  history.push('/manager/home')
                 )
                 
               }, 1000);

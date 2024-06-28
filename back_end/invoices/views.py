@@ -1538,10 +1538,48 @@ def manager_4(request):
                         'names' : NameSerializer(Name.objects.filter(user = accountant, invoice = customer), many = True).data,
                         'number_of_comments' : len(comments),
                         'amount_over_due' : customer.over_due,
-                        'days_overdue' : Invoice.objects.filter(user = accountant, invoice = customer).order_by('-days_passed')[0].days_passed
+                        'days_overdue' : Invoice.objects.filter(user = accountant, invoice = customer, paid = False).order_by('-days_passed')[0].days_passed
                     }
                     customers_to_include.append(formated)
         
         return JsonResponse({'customers_to_include': customers_to_include, 'number_of_customers' : len(customers_to_include)}, safe=False)
     else:
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+@api_view(['POST'])
+def all_users(request):
+    if request.method == 'POST':
+        data = UsersSerializer(Users.objects.exclude(role='Manager'), many=True).data
+
+        return JsonResponse({'Users': data}, safe=False)
+    else:
+        return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
+
+
+@api_view(['POST'])
+def create_user(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    password = data.get('password')
+    address = data.get('address')
+    role = data.get('role')
+    if username and password and role:
+        form = {
+            'username': username,
+            'password': password,
+            'address': address,
+            'role': role,
+
+        }
+        serializer = UsersSerializer(data=request.data)
+        if serializer.is_valid():
+            users = Users.objects.create(
+                username = serializer.validated_data.get('username'),
+                password = serializer.validated_data.get('password'),
+                address = serializer.validated_data.get('address'),
+                role = serializer.validated_data.get('role'),
+                
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response('default')

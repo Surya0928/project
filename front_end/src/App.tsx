@@ -10,8 +10,10 @@ import To_Do from './pages/To_Do';
 import Login from './pages/Login';
 import Review from './pages/Review';
 import Sales from './pages/Sales';
-import Manager from './pages/Manager';
+import Manager_Home from './pages/Manager_Home';
+import Manager_Users from './pages/Manger_Users';
 import { AppProvider } from './components/app_variables';
+
 
 const App: React.FC = () => {
   return (
@@ -30,7 +32,8 @@ const App: React.FC = () => {
           <Route path="/to_do" component={To_Do} />
           <Route path="/review" component={Review} />
           <Route path="/sales" component={Sales} />
-          <Route path="/manager" component={Manager} />
+          <Route path="/manager/home" component={Manager_Home} />
+          <Route path="/manager/add_users" component={Manager_Users} />
           {/* Other routes if needed */}
 
         </Switch>

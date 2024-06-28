@@ -3,6 +3,8 @@ import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
 import { useHistory } from 'react-router-dom';
 import { AppProvider, useAppContext } from '../components/app_variables';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse, faPersonCirclePlus } from '@fortawesome/free-solid-svg-icons';
 
 interface Accountant {
   id: number;
@@ -100,7 +102,7 @@ const initialFilter: Filter = {
 
 const options = ["No Response", "Requested Call Back", "Other"];
 
-const Manager: React.FC = () => {
+const Manager_Home: React.FC = () => {
   const history = useHistory();
   const { user_id, username } = useAppContext();
   const [accountants, setAccountants] = useState<Accountant[]>([]);
@@ -459,290 +461,298 @@ const Manager: React.FC = () => {
   };
 
   return (
-    <div className='flex flex-col items-center overflow-y-auto w-screen h-screen p-14 space-y-20'>
-      <div className='flex space-x-4 items-center justify-center'>
-        <div className='font-semibold'>Select Accountant:</div>
-        <select
-          value={selectedAccountant || ''}
-          onChange={handleAccountantChange}
-          className='px-2 py-1 border border-gray-300 bg-white rounded'
-        >
-          <option value='' disabled>
-            Select an accountant
-          </option>
-          <option value='all'>All</option> {/* Add this option */}
-          {accountants.map((accountant) => (
-            <option key={accountant.id} value={accountant.id}>
-              {accountant.username}
+    <div className='flex flex-col items-center overflow-y-auto w-screen h-screen space-y-10'>
+      <div className='flex justify-between items-center bg-black w-full h-auto px-10 py-4'>
+        <div className='text-3xl font-bold text-white'>{username}</div>
+        <div className='flex space-x-14 items-center'>
+          <FontAwesomeIcon icon={faHouse} className='text-blue-600 w-8 h-8 cursor-pointer' />
+          <FontAwesomeIcon icon={faPersonCirclePlus} className='text-white w-8 h-8 cursor-pointer' onClick={() => history.push('/manager/add_users')}/>
+        </div>
+      </div>
+      <div className='flex flex-col items-center overflow-y-auto w-screen h-screen px-14 pt-5 pb-14 space-y-20'>
+        <div className='flex space-x-4 items-center justify-center'>
+          <div className='font-semibold'>Select Accountant:</div>
+          <select
+            value={selectedAccountant || ''}
+            onChange={handleAccountantChange}
+            className='px-2 py-1 border border-gray-300 bg-white rounded'
+          >
+            <option value='' disabled>
+              Select an accountant
             </option>
-          ))}
-        </select>
-        <button
-          onClick={() => Enter_Button()}
-          className='px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-700'
-        >
-          Enter
-        </button>
-      </div>
+            <option value='all'>All</option> {/* Add this option */}
+            {accountants.map((accountant) => (
+              <option key={accountant.id} value={accountant.id}>
+                {accountant.username}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => Enter_Button()}
+            className='px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-700'
+          >
+            Enter
+          </button>
+        </div>
 
-      <div id='section-1' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
-        <div className='flex space-x-4'>
-          <button
-            onClick={() => handleProjectedCollectionFilterChange('all')}
-            className={`px-4 py-1 rounded ${
-              projected_collection_filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => handleProjectedCollectionFilterChange('this_month')}
-            className={`px-4 py-1 rounded ${
-              projected_collection_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => handleProjectedCollectionFilterChange('this_week')}
-            className={`px-4 py-1 rounded ${
-              projected_collection_filter === 'this_week' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            This Week
-          </button>
-          <button
-            onClick={() => handleProjectedCollectionFilterChange('today')}
-            className={`px-4 py-1 rounded ${
-              projected_collection_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Today
-          </button>
-        </div>
-        <div className='flex justify-around space-x-5'>
-          <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
-            Total Outstanding : {total_outstanding}
+        <div id='section-1' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
+          <div className='flex space-x-4'>
+            <button
+              onClick={() => handleProjectedCollectionFilterChange('all')}
+              className={`px-4 py-1 rounded ${
+                projected_collection_filter === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => handleProjectedCollectionFilterChange('this_month')}
+              className={`px-4 py-1 rounded ${
+                projected_collection_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              onClick={() => handleProjectedCollectionFilterChange('this_week')}
+              className={`px-4 py-1 rounded ${
+                projected_collection_filter === 'this_week' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              This Week
+            </button>
+            <button
+              onClick={() => handleProjectedCollectionFilterChange('today')}
+              className={`px-4 py-1 rounded ${
+                projected_collection_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Today
+            </button>
           </div>
-          <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
-            Total Overdue : {total_over_due}
-          </div>
-          <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
-            Projected Collections : {projected_amount}
-          </div>
-        </div>
-      </div>
-      <div id='section-2' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
-        <div className='flex space-x-4'>
-          <button
-            onClick={() => handleAccountsReachedFilterChange('today')}
-            className={`px-4 py-1 rounded ${
-              accounts_reached_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => handleAccountsReachedFilterChange('yesterday')}
-            className={`px-4 py-1 rounded ${
-              accounts_reached_filter === 'yesterday' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Yesterday
-          </button>
-          <button
-            onClick={() => handleAccountsReachedFilterChange('last_7_days')}
-            className={`px-4 py-1 rounded ${
-              accounts_reached_filter === 'last_7_days' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => handleAccountsReachedFilterChange('this_month')}
-            className={`px-4 py-1 rounded ${
-              accounts_reached_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            This Month
-          </button>
-        </div>
-        <div className='flex justify-around space-x-5'>
-          <div className={`container w-96 text-center py-2 ${accounts_reached > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_accounts_reached_data && accounts_reached > 0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section2_data()}>
-            Accounts Reached : {accounts_reached}
+          <div className='flex justify-around space-x-5'>
+            <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
+              Total Outstanding : {total_outstanding}
+            </div>
+            <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
+              Total Overdue : {total_over_due}
+            </div>
+            <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
+              Projected Collections : {projected_amount}
+            </div>
           </div>
         </div>
-        {toggle_accounts_reached_data && accounts_reached > 0 && (
-          <table className="table-auto w-full border-collapse border border-gray-400">
-            <thead>
-              <tr>
-                <th className="text-center border border-gray-400 p-2">Account</th>
-                <th className="text-center border border-gray-400 p-2">Invoices</th>
-                <th className="text-center border border-gray-400 p-2">Date</th>
-                <th className="text-center border border-gray-400 p-2">Amount</th>
-                <th className="text-center border border-gray-400 p-2">Remarks</th>
-                <th className="text-center border border-gray-400 p-2">Sales person</th>
-                <th className="text-center border border-gray-400 p-2">Follow Up Date</th>
-                <th className="text-center border border-gray-400 p-2">Promised Payment Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts_reached_filtered_data.map((item, index) => (
-                <tr key={index}>
-                  <td className="text-center border border-gray-400 p-2">{item.account}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.invoices}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.date}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.amount}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.remarks}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.sales_person}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.follow_up_date}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.promised_payment_date}</td>
+        <div id='section-2' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
+          <div className='flex space-x-4'>
+            <button
+              onClick={() => handleAccountsReachedFilterChange('today')}
+              className={`px-4 py-1 rounded ${
+                accounts_reached_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => handleAccountsReachedFilterChange('yesterday')}
+              className={`px-4 py-1 rounded ${
+                accounts_reached_filter === 'yesterday' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Yesterday
+            </button>
+            <button
+              onClick={() => handleAccountsReachedFilterChange('last_7_days')}
+              className={`px-4 py-1 rounded ${
+                accounts_reached_filter === 'last_7_days' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Last 7 Days
+            </button>
+            <button
+              onClick={() => handleAccountsReachedFilterChange('this_month')}
+              className={`px-4 py-1 rounded ${
+                accounts_reached_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              This Month
+            </button>
+          </div>
+          <div className='flex justify-around space-x-5'>
+            <div className={`container w-96 text-center py-2 ${accounts_reached > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_accounts_reached_data && accounts_reached > 0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section2_data()}>
+              Accounts Reached : {accounts_reached}
+            </div>
+          </div>
+          {toggle_accounts_reached_data && accounts_reached > 0 && (
+            <table className="table-auto w-full border-collapse border border-gray-400">
+              <thead>
+                <tr>
+                  <th className="text-center border border-gray-400 p-2">Account</th>
+                  <th className="text-center border border-gray-400 p-2">Invoices</th>
+                  <th className="text-center border border-gray-400 p-2">Date</th>
+                  <th className="text-center border border-gray-400 p-2">Amount</th>
+                  <th className="text-center border border-gray-400 p-2">Remarks</th>
+                  <th className="text-center border border-gray-400 p-2">Sales person</th>
+                  <th className="text-center border border-gray-400 p-2">Follow Up Date</th>
+                  <th className="text-center border border-gray-400 p-2">Promised Payment Date</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {accounts_reached_filtered_data.map((item, index) => (
+                  <tr key={index}>
+                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.invoices}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.date}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.amount}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.remarks}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.sales_person}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.follow_up_date}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.promised_payment_date}</td>
+                  </tr>
+                ))}
+              </tbody>
 
-          </table>
-        )}
-      </div>
-      <div id='section-3' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
-        <div className='flex space-x-4'>
-          <button
-            onClick={() => handleAmountCollectedFilterChange('today')}
-            className={`px-4 py-1 rounded ${
-              amount_collected_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => handleAmountCollectedFilterChange('yesterday')}
-            className={`px-4 py-1 rounded ${
-              amount_collected_filter === 'yesterday' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Yesterday
-          </button>
-          <button
-            onClick={() => handleAmountCollectedFilterChange('last_7_days')}
-            className={`px-4 py-1 rounded ${
-              amount_collected_filter === 'last_7_days' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => handleAmountCollectedFilterChange('this_month')}
-            className={`px-4 py-1 rounded ${
-              amount_collected_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
-          >
-            This Month
-          </button>
+            </table>
+          )}
         </div>
-        <div className='flex justify-around space-x-5'>
-          <div className={`container w-96 text-center py-2 ${amount_collected > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_amount_collected_data && amount_collected>0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section3_data()}>
-            Amount Collected : {amount_collected}
+        <div id='section-3' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
+          <div className='flex space-x-4'>
+            <button
+              onClick={() => handleAmountCollectedFilterChange('today')}
+              className={`px-4 py-1 rounded ${
+                amount_collected_filter === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => handleAmountCollectedFilterChange('yesterday')}
+              className={`px-4 py-1 rounded ${
+                amount_collected_filter === 'yesterday' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Yesterday
+            </button>
+            <button
+              onClick={() => handleAmountCollectedFilterChange('last_7_days')}
+              className={`px-4 py-1 rounded ${
+                amount_collected_filter === 'last_7_days' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              Last 7 Days
+            </button>
+            <button
+              onClick={() => handleAmountCollectedFilterChange('this_month')}
+              className={`px-4 py-1 rounded ${
+                amount_collected_filter === 'this_month' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+              }`}
+            >
+              This Month
+            </button>
           </div>
-        </div>
-        {toggle_amount_collected_data && amount_collected > 0 && (
-          <table className="table-auto w-full border-collapse border border-gray-400">
-            <thead>
-              <tr>
-                <th className="text-center border border-gray-400 p-2">Account</th>
-                <th className="text-center border border-gray-400 p-2">Invoice</th>
-                <th className="text-center border border-gray-400 p-2">Paid Date</th>
-                <th className="text-center border border-gray-400 p-2">Paid Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {amount_collected_filtered_data.map((item, index) => (
-                <tr key={index}>
-                  <td className="text-center border border-gray-400 p-2">{item.account}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.invoice}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.payment_date}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.amount}</td>
+          <div className='flex justify-around space-x-5'>
+            <div className={`container w-96 text-center py-2 ${amount_collected > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_amount_collected_data && amount_collected>0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section3_data()}>
+              Amount Collected : {amount_collected}
+            </div>
+          </div>
+          {toggle_amount_collected_data && amount_collected > 0 && (
+            <table className="table-auto w-full border-collapse border border-gray-400">
+              <thead>
+                <tr>
+                  <th className="text-center border border-gray-400 p-2">Account</th>
+                  <th className="text-center border border-gray-400 p-2">Invoice</th>
+                  <th className="text-center border border-gray-400 p-2">Paid Date</th>
+                  <th className="text-center border border-gray-400 p-2">Paid Amount</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {amount_collected_filtered_data.map((item, index) => (
+                  <tr key={index}>
+                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.invoice}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.payment_date}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
 
-          </table>
-        )}
-      </div>
-      <div id='section-4' className="w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl">
-        <div className="flex flex-col space-y-4 bg-white pb-4 px-8  rounded shadow-md w-full max-w-2xl">
-          <div className='text-center font-bold text-3xl'>Filter</div>
-          {filters.map((filter, index) => renderFilter(filter, index))}
-          <div className="flex justify-between items-center">
-              <button
-                onClick={addFilter}
-                disabled={!canAddFilter()}
-                className="bg-blue-500 text-white p-2 rounded"
-              >
-                Add Filter
-              </button>
-              <button className='bg-blue-500 text-white p-2 rounded' onClick={() => fetchSection4Data()}>
-                Get Accounts
-              </button>
-              {canRemoveFilter() && (
-              <button
-                onClick={removeFilter}
-                className="bg-red-500 text-white p-2 rounded"
-              >
-                Remove Filter
-              </button>
-              )}
-
-
-          </div>
+            </table>
+          )}
         </div>
-        <div className='flex justify-around space-x-5'>
-          <div className={`container w-96 text-center py-2 ${difficult_accounts > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_difficult_accounts_data && difficult_accounts>0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section4_data()}>
-            Difficult Accounts : {difficult_accounts}
+        <div id='section-4' className="w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl">
+          <div className="flex flex-col space-y-4 bg-white pb-4 px-8  rounded shadow-md w-full max-w-2xl">
+            <div className='text-center font-bold text-3xl'>Filter</div>
+            {filters.map((filter, index) => renderFilter(filter, index))}
+            <div className="flex justify-between items-center">
+                <button
+                  onClick={addFilter}
+                  disabled={!canAddFilter()}
+                  className="bg-blue-500 text-white p-2 rounded"
+                >
+                  Add Filter
+                </button>
+                <button className='bg-blue-500 text-white p-2 rounded' onClick={() => fetchSection4Data()}>
+                  Get Accounts
+                </button>
+                {canRemoveFilter() && (
+                <button
+                  onClick={removeFilter}
+                  className="bg-red-500 text-white p-2 rounded"
+                >
+                  Remove Filter
+                </button>
+                )}
+
+
+            </div>
           </div>
-        </div>
-        {toggle_difficult_accounts_data && difficult_accounts > 0 && (
-          <table className="table-auto w-full border-collapse border border-gray-400">
-            <thead>
-              <tr>
-                <th className="text-center border border-gray-400 p-2">Account</th>
-                <th className="text-center border border-gray-400 p-2">
-                  <div>Name</div>
-                  <div>(Phone Number)</div>
-                </th>
-                <th className="text-center border border-gray-400 p-2">Number of Comments </th>
-                <th className="text-center border border-gray-400 p-2">Amount Overdue</th>
-                <th className="text-center border border-gray-400 p-2">Days Overdue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {difficult_accounts_data.map((item, index) => (
-                <tr key={index}>
-                  <td className="text-center border border-gray-400 p-2">{item.account}</td>
-                  <td className="flex flex-col h-16 overflow-y-auto justify-center items-center text-center border border-gray-400 p-2">
-                    {item.names.map((Name: Each_Account_Name_List) => (
-                      <div>
+          <div className='flex justify-around space-x-5'>
+            <div className={`container w-96 text-center py-2 ${difficult_accounts > 0 ? 'hover:bg-green-400' : ''}  rounded-xl cursor-pointer ${toggle_difficult_accounts_data && difficult_accounts>0 ? ' bg-gray-300' : 'bg-blue-500 text-white'}`} onClick={() => section4_data()}>
+              Difficult Accounts : {difficult_accounts}
+            </div>
+          </div>
+          {toggle_difficult_accounts_data && difficult_accounts > 0 && (
+            <table className="table-auto w-full border-collapse border border-gray-400">
+              <thead>
+                <tr>
+                  <th className="text-center border border-gray-400 p-2">Account</th>
+                  <th className="text-center border border-gray-400 p-2">
+                    <div>Name</div>
+                    <div>(Phone Number)</div>
+                  </th>
+                  <th className="text-center border border-gray-400 p-2">Number of Comments </th>
+                  <th className="text-center border border-gray-400 p-2">Amount Overdue</th>
+                  <th className="text-center border border-gray-400 p-2">Days Overdue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {difficult_accounts_data.map((item, index) => (
+                  <tr key={index}>
+                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                    <td className="flex flex-col h-16 overflow-y-auto justify-center items-center text-center border border-gray-400 p-2">
+                      {item.names.map((Name: Each_Account_Name_List) => (
                         <div>
-                            {Name.name}
+                          <div>
+                              {Name.name}
+                          </div>
+                          <div>
+                              ({Name.phone_number})
+                          </div>
                         </div>
-                        <div>
-                            ({Name.phone_number})
-                        </div>
-                      </div>
-                    ))}
-                  </td>
-                  <td className="text-center border border-gray-400 p-2">{item.number_of_comments}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.amount_over_due}</td>
-                  <td className="text-center border border-gray-400 p-2">{item.days_overdue}</td>
-                </tr>
-              ))}
-            </tbody>
+                      ))}
+                    </td>
+                    <td className="text-center border border-gray-400 p-2">{item.number_of_comments}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.amount_over_due}</td>
+                    <td className="text-center border border-gray-400 p-2">{item.days_overdue}</td>
+                  </tr>
+                ))}
+              </tbody>
 
-          </table>
-        )}
+            </table>
+          )}
+        </div>
       </div>
-
     </div>
   );
 };
 
-export default Manager;
+export default Manager_Home;
