@@ -1,10 +1,13 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import HeadBar from '../components/head_bar';
 import Sidebar from '../components/side_bar';
+import { AccountInfo } from '../models';
+import Modal from 'react-modal'; // Import the modal library
 import { useHistory } from 'react-router-dom';
 import { AppProvider, useAppContext } from '../components/app_variables';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHouse, faPersonCirclePlus } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faPersonCirclePlus, faPencil, faCheck, faXmark } from '@fortawesome/free-solid-svg-icons';
+
 
 interface Accountant {
   id: number;
@@ -23,6 +26,7 @@ interface NumberData {
 }
 
 interface AmountCollectedInvoiceDetails {
+  user: string;
   account: string;
   invoice: string;
   payment_date: string;
@@ -42,6 +46,7 @@ interface AmountCollectedData {
 }
 
 interface AccountsReachedInvoiceDetails {
+  user : string;
   account: string;
   invoices: string;
   date: string;
@@ -99,6 +104,16 @@ const initialFilter: Filter = {
 };
 
 
+const customStyles = {
+  content: {
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    marginRight: '-50%',
+    transform: 'translate(-50%, -50%)'
+  }
+};
 
 const options = ["No Response", "Requested Call Back", "Other"];
 
@@ -111,6 +126,8 @@ const Manager_Home: React.FC = () => {
   
   const [total_outstanding, setTotalOutstanding] = useState<number>(0);
   const [total_over_due, setTotalOverDue] = useState<number>(0);
+  const [target_collection, set_target_collection] = useState<number>(0);
+  const [inp_target_collection, set_inp_target_collection] = useState<number | null>(null);
   const [projected_collection, setProjectedCollection] = useState<any>({
     projected_all_col: 0,
     projected_this_month_col: 0,
@@ -131,6 +148,8 @@ const Manager_Home: React.FC = () => {
   const [toggle_amount_collected_data, set_toggle_amount_collected_data] = useState<boolean>(false)
   const [toggle_accounts_reached_data, set_toggle_accounts_reached_data] = useState<boolean>(false)
   const [toggle_difficult_accounts_data, set_toggle_difficult_accounts_data] = useState<boolean>(false)
+  const [edit_target_collection, set_edit_target_collection] = useState<boolean>(false)
+  const [modalIsOpen, setIsOpen] = useState<boolean>(false); // State to handle modal visibility
 
 
   const fetchAccountants = async () => {
@@ -145,6 +164,58 @@ const Manager_Home: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setAccountants(data.accountants);
+      } else {
+        console.error('Failed to fetch accountants data');
+      }
+    } catch (error) {
+      console.error('Error fetching accountants data:', error);
+    }
+  };
+
+  const [customer_data, set_customer_data] = useState<AccountInfo>()
+  const fetchCustomer = async (user: string, account : string) => {
+    if (account && user) {
+      try {
+        const response = await fetch('http://165.232.188.250:8080/get_customer/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user : user,
+            customer : account,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          set_customer_data(data.accountants);
+          setIsOpen(true)
+        } else {
+          console.error('Failed to fetch accountants data');
+        }
+      } catch (error) {
+        console.error('Error fetching accountants data:', error);
+      }
+    }
+  };
+
+  const update_target_collection = async () => {
+    try {
+      if (!inp_target_collection) return;
+      const response = await fetch('http://165.232.188.250:8080/update_target_collections/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountant : selectedAccountant,
+          target_collections : inp_target_collection
+        }),
+      });
+      if (response.ok) {
+        set_edit_target_collection(false)
+        set_inp_target_collection(null)
+        fetchSection1Data()
       } else {
         console.error('Failed to fetch accountants data');
       }
@@ -170,6 +241,8 @@ const Manager_Home: React.FC = () => {
         setProjectedCollection(data.projected_collection);
         setprojected_collection_filter('all');
         setProjectedAmount(data.projected_collection.projected_all_col);
+        set_target_collection(data.target_collection)
+        console.log(data.target_collection)
       } else {
         console.error('Failed to fetch manager data');
       }
@@ -530,7 +603,7 @@ const Manager_Home: React.FC = () => {
               Today
             </button>
           </div>
-          <div className='flex justify-around space-x-5'>
+          <div className='flex justify-around items-center space-x-5'>
             <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
               Total Outstanding : {total_outstanding}
             </div>
@@ -540,6 +613,25 @@ const Manager_Home: React.FC = () => {
             <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
               Projected Collections : {projected_amount}
             </div>
+            {selectedAccountant && selectedAccountant !== 'all' && (
+              !edit_target_collection ? (
+                <div className='flex items-center justify-center space-x-3'>
+                  <div className='container w-96 text-center py-2 border border-gray-500 rounded-xl'>
+                    Target Collections : {target_collection}
+                  </div>
+                  <FontAwesomeIcon icon={faPencil} className='w-4 h-4' onClick={() => set_edit_target_collection(true)} />
+                </div>
+              ) : (
+                <div className='flex items-center justify-center space-x-3'>
+                  <div className='flex space-x-2 items-center justify-center w-96 py-2 border border-gray-500 rounded-xl'>
+                    <div>Target Collections :</div>
+                    <input className='w-28 border-none text-black' placeholder={String(target_collection)} style={{ outline: 'none' }} onChange={(e) => (set_inp_target_collection(Number(e.target.value)))}></input>
+                  </div>
+                  <FontAwesomeIcon icon={faCheck} className='w-4 h-4' onClick={() => (update_target_collection())} />
+                  <FontAwesomeIcon icon={faXmark} className='w-4 h-4' onClick={() => set_edit_target_collection(false)} />
+                </div>
+              )
+            )}
           </div>
         </div>
         <div id='section-2' className='w-full flex flex-col items-center space-y-4 border border-gray-500 p-5 rounded-xl'>
@@ -599,7 +691,7 @@ const Manager_Home: React.FC = () => {
               <tbody>
                 {accounts_reached_filtered_data.map((item, index) => (
                   <tr key={index}>
-                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                    <td className="text-center border border-gray-400 p-2 underline font-semibold cursor-pointer" onClick={() => fetchCustomer(item.user, item.account)}>{item.account}</td>
                     <td className="text-center border border-gray-400 p-2">{item.invoices}</td>
                     <td className="text-center border border-gray-400 p-2">{item.date}</td>
                     <td className="text-center border border-gray-400 p-2">{item.amount}</td>
@@ -667,7 +759,7 @@ const Manager_Home: React.FC = () => {
               <tbody>
                 {amount_collected_filtered_data.map((item, index) => (
                   <tr key={index}>
-                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
+                    <td className="text-center border border-gray-400 p-2 underline font-semibold cursor-pointer" onClick={() => fetchCustomer(item.user, item.account)}>{item.account}</td>
                     <td className="text-center border border-gray-400 p-2">{item.invoice}</td>
                     <td className="text-center border border-gray-400 p-2">{item.payment_date}</td>
                     <td className="text-center border border-gray-400 p-2">{item.amount}</td>
@@ -751,6 +843,26 @@ const Manager_Home: React.FC = () => {
           )}
         </div>
       </div>
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={() => setIsOpen(false)}
+        style={customStyles}
+        contentLabel='Customer Data'
+      >
+        <h2>Customer Data</h2>
+        {customer_data ? (
+          <div>
+            <p>Name: {customer_data.name}</p>
+
+            {/* Add other customer data fields as needed */}
+          </div>
+        ) : (
+          <p>Loading...</p>
+        )}
+        <button onClick={() => setIsOpen(false)} className='mt-4 px-4 py-2 bg-red-500 text-white rounded'>
+          Close
+        </button>
+      </Modal>
     </div>
   );
 };

@@ -29,4 +29,6 @@ urlpatterns = [
     path('manager_4/', views.manager_4, name='manager_4'),
     path('all_users/', views.all_users, name='all_users'),
     path('create_user/', views.create_user, name='create_user'),
+    path('update_target_collections/', views.update_target_collections, name='update_target_collections'),
+    path('get_customer/', views.get_customer, name='get_customer'),
 ]

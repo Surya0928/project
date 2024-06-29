@@ -3,8 +3,9 @@ from django.db import models
 class Users(models.Model):
     username = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
-    address = models.CharField(max_length=100)
+    address = models.CharField(max_length=100, null=True, blank=True)
     role = models.CharField(max_length=20)
+    target_collection = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
 
 class Customers(models.Model):
     user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='customer_user', default=None)

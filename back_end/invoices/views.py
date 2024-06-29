@@ -1127,6 +1127,7 @@ def manager_1(request):
         projected_this_month_col = 0
         projected_this_week_col = 0
         projected_today_col = 0
+        target_collection = 0
 
         # Define date ranges
         today = datetime.now().date()
@@ -1184,6 +1185,7 @@ def manager_1(request):
         else:
             accountant = Users.objects.get(username=data.get('accountant'))
             customers = Customers.objects.filter(user=accountant)
+            target_collection = accountant.target_collection
             for customer in customers:
                 total_outstanding += customer.total_due
                 total_over_due += customer.over_due
@@ -1233,7 +1235,7 @@ def manager_1(request):
             'projected_today_col': projected_today_col,
         }
 
-        return JsonResponse({'total_outstanding': total_outstanding, 'total_over_due': total_over_due, 'projected_collection': projected_collection}, safe=False)
+        return JsonResponse({'total_outstanding': total_outstanding, 'total_over_due': total_over_due, 'projected_collection': projected_collection, 'target_collection' : target_collection,}, safe=False)
     else:
         return JsonResponse({'error': 'Only POST method is allowed for this endpoint'}, status=405)
 
@@ -1291,22 +1293,22 @@ def manager_2(request):
                                 sales_person = comment.sales_person
                             if (date and date == today):
                                 accounts_reached['today'] += 1
-                                account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                                account_details['today'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                             # Check for yesterday
                             if (date and date == yesterday):
                                 accounts_reached['yesterday'] += 1
-                                account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                                account_details['yesterday'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                             # Check for last seven days
                             if (date and last_seven_days_start <= date <= today):
                                 accounts_reached['last_seven_days'] += 1
-                                account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                                account_details['last_seven_days'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                             # Check for this month
                             if (date and start_of_month <= date <= today):
                                 accounts_reached['this_month'] += 1
-                                account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                                account_details['this_month'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
         else:
             accountant = Users.objects.get(username=data.get('accountant'))
@@ -1329,22 +1331,22 @@ def manager_2(request):
                             sales_person = comment.sales_person
                         if (date and date == today):
                             accounts_reached['today'] += 1
-                            account_details['today'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                            account_details['today'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                         # Check for yesterday
                         if (date and date == yesterday):
                             accounts_reached['yesterday'] += 1
-                            account_details['yesterday'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                            account_details['yesterday'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                         # Check for last seven days
                         if (date and last_seven_days_start <= date <= today):
                             accounts_reached['last_seven_days'] += 1
-                            account_details['last_seven_days'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                            account_details['last_seven_days'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
                         # Check for this month
                         if (date and start_of_month <= date <= today):
                             accounts_reached['this_month'] += 1
-                            account_details['this_month'].append({'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
+                            account_details['this_month'].append({'user' : comment.user.username,'account' :comment.invoice.account, 'invoices' :comment.invoice_list, 'amount' :comment.amount_promised, 'remarks' : comment.remarks, 'sales_person' : sales_person, 'date' :comment.date, 'follow_up_date' : comment.follow_up_date, 'promised_payment_date' : comment.promised_date})
 
         response_data = {
             'accounts_reached': accounts_reached,
@@ -1402,22 +1404,22 @@ def manager_3(request):
                         # Check for today
                         if paid_date == today:
                             amount_collected['today'] += invoice.pending
-                            account_details['today'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                            account_details['today'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                         # Check for yesterday
                         if paid_date == yesterday:
                             amount_collected['yesterday'] += invoice.pending
-                            account_details['yesterday'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                            account_details['yesterday'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                         # Check for last seven days
                         if last_seven_days_start <= paid_date <= today:
                             amount_collected['last_seven_days'] += invoice.pending
-                            account_details['last_seven_days'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                            account_details['last_seven_days'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                         # Check for this month
                         if start_of_month <= paid_date <= today:
                             amount_collected['this_month'] += invoice.pending
-                            account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                            account_details['this_month'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
         else:
             accountant = Users.objects.get(username=data.get('accountant'))
@@ -1434,22 +1436,22 @@ def manager_3(request):
                     # Check for today
                     if paid_date == today:
                         amount_collected['today'] += invoice.pending
-                        account_details['today'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                        account_details['today'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                     # Check for yesterday
                     if paid_date == yesterday:
                         amount_collected['yesterday'] += invoice.pending
-                        account_details['yesterday'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                        account_details['yesterday'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                     # Check for last seven days
                     if last_seven_days_start <= paid_date <= today:
                         amount_collected['last_seven_days'] += invoice.pending
-                        account_details['last_seven_days'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                        account_details['last_seven_days'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
                     # Check for this month
                     if start_of_month <= paid_date <= today:
                         amount_collected['this_month'] += invoice.pending
-                        account_details['this_month'].append({'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
+                        account_details['this_month'].append({'user' : invoice.user.username,'account' : invoice.invoice.account, 'invoice' : invoice.ref_no, 'payment_date' : invoice.paid_date, 'amount' : invoice.pending})
 
 
 
@@ -1583,3 +1585,25 @@ def create_user(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     return Response('default')
+
+
+@api_view(['POST'])
+def update_target_collections(request):
+    data = json.loads(request.body)
+    accountant = get_object_or_404(Users, username = data.get('accountant'))
+    target_collection = data.get('target_collections')
+    
+    accountant.target_collection = target_collection
+    accountant.save()
+    return Response('success')
+
+
+@api_view(['POST'])
+def get_customer(request):
+    data = json.loads(request.body)
+    print(data)
+    user = get_object_or_404(Users, username = data.get('user'), role='Accountant')
+    print(1)
+    customer = InvoiceSerializer(get_object_or_404(Customers, user = user, account = data.get('customer'))).data
+
+    return Response({'Customer': customer})
