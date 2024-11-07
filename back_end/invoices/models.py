@@ -78,26 +78,3 @@ class Name(models.Model):
 
     def _str_(self):
         return f"{self.invoice}"
-
-class Manager(models.Model):
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=100, null=True)
-    phone_number = models.CharField(max_length=10)
-    username = models.CharField(max_length=100)
-    password = models.CharField(max_length=100)
-
-    def _str_(self):
-        return f"{self.first_name} {self.last_name}"
-
-class Business(models.Model):
-    manager = models.ForeignKey(Manager,on_delete=models.SET_NULL, related_name='business_manager', default=None, null=True, blank=True)
-    company = models.CharField(max_length=100)
-    type = models.CharField(max_length=100)
-    address_1 = models.CharField(max_length=100)
-    address_2 = models.CharField(max_length=100, null = True, blank=True)
-    state = models.CharField(max_length=100)
-    pincode = models.CharField(max_length=10)
-
-    def _str_(self):
-        return f"{self.company} with {self.manager}"
