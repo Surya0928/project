@@ -1,11 +1,15 @@
 # invoices/admin.py
 
 from django.contrib import admin
-from .models import Customers, Invoice, Comments, Sales_Persons, Users, Name
+from .models import Customers, Invoice, Comments, Sales_Persons, Users, Name, Manager
 
 
 @admin.register(Users)
 class InvoiceSalesPersonAdmin(admin.ModelAdmin):
+    search_fields = ['username']
+
+@admin.register(Manager)
+class InvoiceManagerAdmin(admin.ModelAdmin):
     search_fields = ['username']
 
 @admin.register(Sales_Persons)
