@@ -21,7 +21,7 @@ interface SalesPerson {
 
 const Manager_Users: React.FC = () => {
   const history = useHistory();
-  const { user_id, username } = useAppContext();
+  const { id, username } = useAppContext();
   const [all_users, set_all_users] = useState<Users[]>([]);
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [inp_username, set_inp_username] = useState<string>('');
@@ -35,7 +35,7 @@ const Manager_Users: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/all_users/', {
+      const response = await fetch('http://127.0.0.1:8000/all_users/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ const Manager_Users: React.FC = () => {
 
   const fetchSales = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/sales/', {
+      const response = await fetch('http://127.0.0.1:8000/sales/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const Manager_Users: React.FC = () => {
 
   const Create_User = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/create_user/', {
+      const response = await fetch('http://127.0.0.1:8000/create_user/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ const Manager_Users: React.FC = () => {
   const createSales = async () => {
     if (inp_sales_name && inp_sales_phone_number) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-sales/', {
+        const response = await fetch('http://127.0.0.1:8000/create-sales/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -135,15 +135,15 @@ const Manager_Users: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!user_id) {
+    if (!id) {
       history.push('/');
     }
     fetchUsers();
     fetchSales();
-  }, [user_id, history]);
+  }, [id, history]);
 
   return (
-    <div className='flex flex-col items-center overflow-y-auto w-screen h-screen space-y-16 pb-10'>
+    <div className='flex flex-col items-center overflow-y-auto no-scrollbar w-screen h-screen space-y-16 pb-10'>
       <div className='flex justify-between items-center bg-black w-full h-auto px-10 py-4'>
         <div className='text-3xl font-bold text-white'>{username}</div>
         <div className='flex space-x-14 items-center'>

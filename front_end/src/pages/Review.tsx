@@ -7,7 +7,7 @@ import { AppProvider, useAppContext } from '../components/app_variables';
 
 const Review: React.FC = () => {
   const history = useHistory();
-  const { user_id, username } = useAppContext();
+  const { id, username } = useAppContext();
   const [New_Invoices, set_New_Invocies] = useState<InvoiceDetail[]>([]);
   const [Old_Invoices, set_Old_Invocies] = useState<InvoiceDetail[]>([]);
   const [invoicePaidStatus, setInvoicePaidStatus] = useState<{ [key: number]: boolean }>({});
@@ -15,13 +15,13 @@ const Review: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/review_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/review_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: user_id
+          id: id
         }),
       });
       if (response.ok) {
@@ -39,11 +39,11 @@ const Review: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!user_id) {
+    if (!id) {
       history.push('/');
     }
     fetchData();
-  }, [user_id, history]);
+  }, [id, history]);
 
   const handleCheckboxChange = (invoiceId: number) => {
     const currentDate = new Date();
@@ -77,7 +77,7 @@ const Review: React.FC = () => {
 
   const new_invoice_acceptance = async (id: number, acceptance: boolean) => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_acceptance/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_acceptance/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,14 +99,14 @@ const Review: React.FC = () => {
 
   const old_invoice_acceptance = async (invoice: InvoiceDetail) => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_old_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_old_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           id: invoice.id,
-          user: user_id,
+          user: id,
           paid_status: invoicePaidStatus[invoice.id] || false,
           paid_date: invoicePaidDate[invoice.id] || null,
         }),
@@ -124,7 +124,7 @@ const Review: React.FC = () => {
   const handleBulkAcceptance = async (acceptance: boolean) => {
     try {
       const invoiceIds = New_Invoices.map(invoice => invoice.id);
-      const response = await fetch('http://165.232.188.250:8080/bulk_invoice_acceptance/', {
+      const response = await fetch('http://127.0.0.1:8000/bulk_invoice_acceptance/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,10 +145,13 @@ const Review: React.FC = () => {
     }
   };
 
+    const [searchQuery, setSearchQuery] = useState<string>('');
+
+
   return (
-    <div className='flex w-screen justify-between items-center'>
+        <div className='flex w-screen bg-gray-100 h-screen justify-between  items-center'>
       <Sidebar current_page='Review' />
-      <HeadBar />
+      <HeadBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} pagename='Review' />
       <div className="flex flex-col w-screen h-screen overflow-auto items-center justify-center py-16 text-black space-y-10">
         <div className='w-full  px-40 font-bold flex  items-center justify-between'>
             <div className='text-3xl underline'>New Invoices</div>
@@ -158,7 +161,7 @@ const Review: React.FC = () => {
                 <button className='text-red-500' onClick={() => handleBulkAcceptance(false)}>Decline All</button>
             </div>
         </div>
-        <div className='w-5/6 max-h-72 overflow-y-auto'>
+        <div className='w-5/6 max-h-72 overflow-y-auto no-scrollbar'>
           <table className='w-full'>
             <thead>
               <tr className='h-auto'>
@@ -187,7 +190,7 @@ const Review: React.FC = () => {
           </table>
         </div>
         <div className='text-3xl font-bold underline flex w-full px-40'>Old Invoices</div>
-        <div className='w-5/6 max-h-72 overflow-y-auto'>
+        <div className='w-5/6 max-h-72 overflow-y-auto no-scrollbar'>
           <table className='w-full'>
             <thead>
               <tr className='h-auto'>

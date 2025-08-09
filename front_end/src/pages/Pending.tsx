@@ -10,7 +10,7 @@ import { AppProvider, useAppContext } from '../components/app_variables';
 
 const Pending: React.FC = () => {
   const history = useHistory();
-  const {user_id, username} =useAppContext();
+  const {id, pending_invoices_data, set_pending_invoices_data} =useAppContext();
   const [accountInfo, setAccountInfo] = useState<AccountInfo[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [date, setdate] = useState<string | null>(null);
@@ -27,7 +27,7 @@ const Pending: React.FC = () => {
   const [sales, setsales] = useState<string[]>([]);
   const [follow_up_date, setfollow_up_date] = useState<string>('');
   const [followUpTime, setFollowUpTime] = useState(''); 
-  const [comment_paid_date, setcomment_paid_date] = useState<string>('');
+  const [comment_status_date, setcomment_status_date] = useState<string>('');
   
   
   const [salesPersonMapping, setSalesPersonMapping] = useState<{ [key: number]: string }>({});
@@ -68,18 +68,19 @@ const Pending: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/pending_invoices/', {
+      const response = await fetch('http://127.0.0.1:8000/pending_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: user_id
+          id: id
         }),
         
       })
       if (response.ok) {
         const data = await response.json();
+        set_pending_invoices_data(data)
         setAccountInfo(data['customer_data']);
         setsales(data['sales'])
         const salesPersonmapping = data['sales_data'].reduce((acc: { [key: number]: string }, person: SalesPerson) => {
@@ -98,10 +99,17 @@ const Pending: React.FC = () => {
   };
 
   useEffect(() => {
-    {!user_id && (
+    {!id && (
       history.push('/')
     )}
-    fetchData();
+    setAccountInfo(pending_invoices_data['customer_data']);
+    setsales(pending_invoices_data['sales'])
+    const salesPersonmapping = pending_invoices_data['sales_data'].reduce((acc: { [key: number]: string }, person: SalesPerson) => {
+      acc[person.id] = person.name;
+      return acc;
+    }, {});
+    setSalesPersonMapping(salesPersonmapping);
+    
     
   }, []);
 
@@ -133,12 +141,12 @@ const Pending: React.FC = () => {
     setcomacc('');
     setSelectedAccount('');
     setfollow_up_date('');
-    setcomment_paid_date('');
+    setcomment_status_date('');
     setFollowUpTime('');
     setassigntosales(false);
     setSales_p('');
     set_invoices_paid(false);
-    setcomment_paid_date('');
+    setcomment_status_date('');
     setprevcom(false)
     setcomsec(false);
 
@@ -188,14 +196,14 @@ const Pending: React.FC = () => {
         let customerUpdateSuccess = false;
   
         // Update customer details
-        const response = await fetch('http://165.232.188.250:8080/create_customer_name/', {
+        const response = await fetch('http://127.0.0.1:8000/create_customer_name/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             invoice: account,
-            user: user_id,
+            user: id,
             name: Name || null,
             phone_number: Num || null,
             credit_period: null
@@ -205,6 +213,7 @@ const Pending: React.FC = () => {
         if (response.ok) {
           console.log('Promised details updated successfully');
           customerUpdateSuccess = true;
+          fetchData()
         } else {
           console.error('Failed to update promised details');
         }
@@ -212,13 +221,13 @@ const Pending: React.FC = () => {
         // If invoiceSalesPersons is not empty, update sales persons for invoices
         if (Object.keys(invoiceSalesPersons).length > 0) {
           const salesData = Object.entries(invoiceSalesPersons);
-          const salesResponse = await fetch('http://165.232.188.250:8080/invoice_sales_p/', {
+          const salesResponse = await fetch('http://127.0.0.1:8000/invoice_sales_p/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              user_id : user_id,
+              id : id,
               sales_Data: salesData
             }),
           });
@@ -297,7 +306,7 @@ const Pending: React.FC = () => {
   };
 
   const handlecommentpaiddateChange = (date: string) => {
-    setcomment_paid_date(date);
+    setcomment_status_date(date);
   };
 
   const [invoices_paid, set_invoices_paid] = useState<boolean>(false);
@@ -309,9 +318,9 @@ const Pending: React.FC = () => {
         const year = tomorrow.getFullYear();
         const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
         const day = String(tomorrow.getDate()).padStart(2, '0');
-        setcomment_paid_date(`${year}-${month}-${day}`);
+        setcomment_status_date(`${year}-${month}-${day}`);
       } else {
-        setcomment_paid_date('')
+        setcomment_status_date('')
       }
       set_invoices_paid(!invoices_paid);
       setprom_amount(0.00);
@@ -347,7 +356,7 @@ const Pending: React.FC = () => {
   };
   const selectedRefNumbersString = selectedRefNumbers.join(', ');
 
-  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean, followUpTime: string, comment_paid_date: string, invoices_paid_amount : number) => {
+  const create_commentt = async (account: string, invoice_list: string, remarks: string, prom_amount: number, follow_up_date:string, sales:string, paymentdate: string, invoices_paid: boolean, followUpTime: string, comment_status_date: string, invoices_paid_amount : number) => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Adding leading zero if necessary
@@ -364,14 +373,14 @@ const Pending: React.FC = () => {
 
     if (account) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-comment/', {
+        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
           
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            user : user_id,
+            user : id,
             invoice : account,
             date : `${year}-${month}-${day}`,
             invoice_list : invoice_list || null,
@@ -382,7 +391,7 @@ const Pending: React.FC = () => {
             follow_up_time: followUpTime || null,
             promised_date: paymentdate || null,
             invoices_paid: invoices_paid,
-            invoices_paid_date: comment_paid_date || null,
+            invoices_paid_date: comment_status_date || null,
             invoices_paid_amount : invoices_paid_amount || totalPendingAmount || 0.00,
           }),
         });
@@ -411,13 +420,13 @@ const Pending: React.FC = () => {
     const todayDate = `${year}-${month}-${day}`;
   
     try {
-      const response = await fetch('http://165.232.188.250:8080/invoice_paid/', {
+      const response = await fetch('http://127.0.0.1:8000/invoice_paid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user : user_id,
+          user : id,
           invoice_id: invoice.id,
           paid_status: !invoice.paid,
           paid_date: invoice.paid ? null : todayDate,
@@ -441,12 +450,12 @@ const Pending: React.FC = () => {
 
   
   return (
-    <div className='flex w-screen justify-between  items-center'>
+    <div className='flex w-screen bg-gray-100 h-screen justify-between  items-center'>
       <Sidebar current_page='Pending' />
-      <HeadBar />
-      <div className="flex flex-col w-screen h-full items-center pb-10 text-black space-y-8">
-        <div id='comment_box' className={`fixed flex w-full h-full overflow-y-auto p-24 ${comsec ? 'opacity-100' : 'invisible'}`}>
-          <div className='flex flex-col overflow-y-auto bg-white w-full h-full border border-black rounded-xl p-2 space-y-4'>
+      <HeadBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} pagename='Pending' />
+      <div className="flex pl-3 flex-col w-full h-full items-center pt-20 pb-10 text-black space-y-8">
+        <div id='comment_box' className={`fixed flex w-full h-full overflow-y-auto no-scrollbar p-24 ${comsec ? 'opacity-100' : 'invisible'}`}>
+          <div className='flex flex-col overflow-y-auto no-scrollbar bg-white w-full h-full border border-black rounded-xl p-2 space-y-4'>
             <div className='flex h-12 w-full items-center justify-between'>
               <button className='border border-black rounded-xl p-2' onClick={() => backcomsec(selectedAccount)}>Cancel</button>
               <div className='flex space-x-4 w-auto h-auto items-center justify-center'>
@@ -488,7 +497,7 @@ const Pending: React.FC = () => {
                 selectedAccount === account.account && (
                   <div className='font-bold text-xl flex'><div>Account : {selectedAccount} </div>{account.name && ( <div>, Name : {account.name}</div>)} {account.phone_number && (<div>, Number: {account.phone_number}</div>)}<div>, Total_Due: {account.total_due}</div></div>
                 )))}
-                <div className='container border border-black w-full h-80 p-2 space-y-2 overflow-y-auto'>
+                <div className='container border border-black w-full h-80 p-2 space-y-2 overflow-y-auto no-scrollbar'>
                   {accountInfo.map((account) => (
                     selectedAccount === account.account && (
                       <div key={account.id}>
@@ -599,12 +608,12 @@ const Pending: React.FC = () => {
                     onChange={() => handleinvoices_paidstatus()}
                     disabled = {selectedOption === ('No Response' || 'Requested Call Back') || selectedRefNumbers.length == 0}
                   />
-                  {invoices_paid && ( <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={comment_paid_date} onChange={(e) => handlecommentpaiddateChange(e.target.value)} type="date"/>)}
+                  {invoices_paid && ( <input className='h-7 w-32 border border-gray-300 text-black rounded-xl justify-center text-center' value={comment_status_date} onChange={(e) => handlecommentpaiddateChange(e.target.value)} type="date"/>)}
                   {invoices_paid && ( <input disabled = {selectedRefNumbers.length === 0} id='paid_amount' placeholder={`${totalPendingAmount}`} type='number' onChange={(e) => handlepaid_amountsChange(Number(e.target.value))} className='bg-white w-40 pl-1 border border-black'></input>)}
                 </div>
 
                 {!prev_com && (<div>
-                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid, followUpTime, comment_paid_date, paid_amount)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
+                  {(comacc && (selectedOption != 'Select Response') && (selectedRefNumbers.length>0) && (invoices_paid || follow_up_date || promised_date)) ? (<button onClick={() => create_commentt(comacc, selectedRefNumbersString, remarks, prom_amount,follow_up_date, Sales_p, promised_date, invoices_paid, followUpTime, comment_status_date, paid_amount)} className='rounded-xl p-2 bg-blue-500 text-white' >Submit</button>) : (<button className='border border-black rounded-xl p-2'>Submit</button>)}
                 </div>)}
                 
               </div>
@@ -612,22 +621,6 @@ const Pending: React.FC = () => {
           </div>
         </div> 
 
-        
-        <div className='pt-20 w-auto'>
-        <input
-          type="text"
-          placeholder="Search the account"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            width: '1000px', // Adjust width as needed
-            border: '1px solid gray', // Set border color to gray
-            borderRadius: '4px', // Optional: Add border radius for styling
-            outline: 'none', // Prevent the input from getting highlighted when focused
-            padding: '8px', // Optional: Add padding for better appearance
-          }}
-        />
-        </div>
         <div className={`container space-y-8 bg-gray-300 w-screen overflow-auto border border-gray-400 rounded-xl py-2`}>
           <div className='flex flex-col space-y-3'>
             <div className="flex text-sm justify-around w-full font-bold">
@@ -653,7 +646,7 @@ const Pending: React.FC = () => {
                   <div className="flex w-32 items-center justify-center font-bold underline" onClick={() => handleAccountClick(account.account)}>{account.account}</div>
                   <div className='flex flex-col w-32 items-center justify-center space-y-1'>
                     {!Edit && (
-                      <div className='flex flex-col h-24 overflow-y-auto space-y-3'>
+                      <div className='flex flex-col h-24 overflow-y-auto no-scrollbar space-y-3'>
                         {account.names.map((Name: Each_Account_Name_List) => (
                           <div >
                             <div>

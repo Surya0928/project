@@ -81,7 +81,8 @@ interface DifficultAccountDetails {
   names: Each_Account_Name_List[],
   number_of_comments: number,
   amount_over_due: number,
-  days_overdue: number
+  days_overdue: number,
+  user: string
 }
 
 interface DifficultAccounts {
@@ -111,7 +112,8 @@ const customStyles = {
     right: 'auto',
     bottom: 'auto',
     marginRight: '-50%',
-    transform: 'translate(-50%, -50%)'
+    transform: 'translate(-50%, -50%)',
+    width: 'screen'
   }
 };
 
@@ -119,7 +121,7 @@ const options = ["No Response", "Requested Call Back", "Other"];
 
 const Manager_Home: React.FC = () => {
   const history = useHistory();
-  const { user_id, username } = useAppContext();
+  const { id, username } = useAppContext();
   const [accountants, setAccountants] = useState<Accountant[]>([]);
   const [selectedAccountant, setSelectedAccountant] = useState<string | null>(null);
   const [projected_collection_filter, setprojected_collection_filter] = useState<string>('all');
@@ -154,7 +156,7 @@ const Manager_Home: React.FC = () => {
 
   const fetchAccountants = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/accountants/', {
+      const response = await fetch('http://127.0.0.1:8000/accountants/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +178,7 @@ const Manager_Home: React.FC = () => {
   const fetchCustomer = async (user: string, account : string) => {
     if (account && user) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/get_customer/', {
+        const response = await fetch('http://127.0.0.1:8000/get_customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -188,7 +190,7 @@ const Manager_Home: React.FC = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          set_customer_data(data.accountants);
+          set_customer_data(data['Customer']);
           setIsOpen(true)
         } else {
           console.error('Failed to fetch accountants data');
@@ -202,7 +204,7 @@ const Manager_Home: React.FC = () => {
   const update_target_collection = async () => {
     try {
       if (!inp_target_collection) return;
-      const response = await fetch('http://165.232.188.250:8080/update_target_collections/', {
+      const response = await fetch('http://127.0.0.1:8000/update_target_collections/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -227,7 +229,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection1Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://165.232.188.250:8080/manager_1/', {
+      const response = await fetch('http://127.0.0.1:8000/manager_1/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -255,7 +257,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection2Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://165.232.188.250:8080/manager_2/', {
+      const response = await fetch('http://127.0.0.1:8000/manager_2/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +282,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection3Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://165.232.188.250:8080/manager_3/', {
+      const response = await fetch('http://127.0.0.1:8000/manager_3/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -304,7 +306,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection4Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://165.232.188.250:8080/manager_4/', {
+      const response = await fetch('http://127.0.0.1:8000/manager_4/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -325,11 +327,11 @@ const Manager_Home: React.FC = () => {
   
 
   useEffect(() => {
-    if (!user_id) {
+    if (!id) {
       history.push('/');
     }
     fetchAccountants();
-  }, [user_id, history]);
+  }, [id, history]);
 
   const handleAccountantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     console.log(e.target.value)
@@ -534,7 +536,7 @@ const Manager_Home: React.FC = () => {
   };
 
   return (
-    <div className='flex flex-col items-center overflow-y-auto w-screen h-screen space-y-10'>
+    <div className='flex flex-col items-center overflow-y-auto no-scrollbar w-screen h-screen space-y-10'>
       <div className='flex justify-between items-center bg-black w-full h-auto px-10 py-4'>
         <div className='text-3xl font-bold text-white'>{username}</div>
         <div className='flex space-x-14 items-center'>
@@ -542,7 +544,7 @@ const Manager_Home: React.FC = () => {
           <FontAwesomeIcon icon={faPersonCirclePlus} className='text-white w-8 h-8 cursor-pointer' onClick={() => history.push('/manager/add_users')}/>
         </div>
       </div>
-      <div className='flex flex-col items-center overflow-y-auto w-screen h-screen px-14 pt-5 pb-14 space-y-20'>
+      <div className='flex flex-col items-center overflow-y-auto no-scrollbar w-screen h-screen px-14 pt-5 pb-14 space-y-20'>
         <div className='flex space-x-4 items-center justify-center'>
           <div className='font-semibold'>Select Accountant:</div>
           <select
@@ -819,8 +821,8 @@ const Manager_Home: React.FC = () => {
               <tbody>
                 {difficult_accounts_data.map((item, index) => (
                   <tr key={index}>
-                    <td className="text-center border border-gray-400 p-2">{item.account}</td>
-                    <td className="flex flex-col h-16 overflow-y-auto justify-center items-center text-center border border-gray-400 p-2">
+                    <td className="text-center border border-gray-400 p-2" onClick={() => fetchCustomer(item.user, item.account)}>{item.account}</td>
+                    <td className="flex flex-col h-16 overflow-y-auto no-scrollbar justify-center items-center text-center border border-gray-400 p-2">
                       {item.names.map((Name: Each_Account_Name_List) => (
                         <div>
                           <div>
@@ -849,19 +851,30 @@ const Manager_Home: React.FC = () => {
         style={customStyles}
         contentLabel='Customer Data'
       >
-        <h2>Customer Data</h2>
+        <div onClick={() => setIsOpen(false)} className='text-xl font-semibold cursor-pointer pb-5'>x</div>
         {customer_data ? (
-          <div>
-            <p>Name: {customer_data.name}</p>
-
-            {/* Add other customer data fields as needed */}
+          <div className='flex flex-col space-y-3 items-center justify center'>
+            
+            <div className='text-2xl font-bold underline'>{customer_data.account}</div>
+            <div className='text-lg flex w-full justify-between items-center'>
+              <div>Over Due : {customer_data.over_due}</div>
+              <div>Total Due : {customer_data.total_due}</div>
+            </div>
+            <div className='text-lg flex w-full justify-between items-center'>
+              <div>Invoices : {customer_data.invoices}</div>
+              <div>Credit Period : {customer_data.credit_period}</div>
+            </div>
+            <div className='flex h-auto w-full overflow-x-auto space-x-3 '>
+              {customer_data.names.map((Name: Each_Account_Name_List) => (
+                <div >
+                  {Name.name}({Name.phone_number})
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <p>Loading...</p>
         )}
-        <button onClick={() => setIsOpen(false)} className='mt-4 px-4 py-2 bg-red-500 text-white rounded'>
-          Close
-        </button>
       </Modal>
     </div>
   );

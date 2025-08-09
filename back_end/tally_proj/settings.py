@@ -45,7 +45,6 @@ DATABASES = {
 }
 
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -67,12 +66,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Add this line
-    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://127.0.0.1:8100', 'http://165.232.188.250:8101', 'https://165.232.188.250:8101', 'http://192.168.0.114:8100'   # Example: Ionic React development server
+    'http://127.0.0.1:8100', 'http://165.232.188.250:8101', 'https://165.232.188.250:8101', 'http://192.168.0.114:8100', "http://localhost:8100",
+    "http://192.168.0.116:8100",   # Example: Ionic React development server
     # Add other origins as needed
 ]
 

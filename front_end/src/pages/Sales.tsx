@@ -14,7 +14,7 @@ interface SalesPerson {
 
 const Sales: React.FC = () => {
   const history = useHistory();
-  const { user_id, username } = useAppContext();
+  const { id, username } = useAppContext();
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [newSalesPerson, setNewSalesPerson] = useState({
     name: '',
@@ -25,7 +25,7 @@ const Sales: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://165.232.188.250:8080/sales/', {
+      const response = await fetch('http://127.0.0.1:8000/sales/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ const Sales: React.FC = () => {
     const { name, phone_number, address, email } = newSalesPerson;
     if (name) {
       try {
-        const response = await fetch('http://165.232.188.250:8080/create-sales/', {
+        const response = await fetch('http://127.0.0.1:8000/create-sales/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -84,16 +84,18 @@ const Sales: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!user_id) {
+    if (!id) {
       history.push('/');
     }
     fetchData();
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   return (
-    <div className='flex w-screen justify-between items-center'>
+    <div className='flex w-screen bg-gray-100 h-screen justify-between  items-center'>
       <Sidebar current_page='Sales' />
-      <HeadBar />
+      <HeadBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} pagename='Sales'/>
       <div className='w-full flex flex-col items-center justify-center py-20 px-40'>
         <h1 className='text-2xl font-bold mb-4'>Sales</h1>
         <table className='min-w-full bg-white border border-gray-200'>

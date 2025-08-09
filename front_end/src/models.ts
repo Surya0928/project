@@ -1,4 +1,25 @@
 // src/models.ts
+export interface General {
+  customer_data : AccountInfo[],
+  len : number,
+  sales : [],
+  sales_data : SalesPerson[]
+}
+
+export interface To_Do {
+  customer_data : DataByDate,
+  len : number,
+  sales : [],
+  sales_data : SalesPerson[]
+}
+
+export interface Paid {
+  customer_data : Paidinfo[],
+  len : number,
+  sales : [],
+  sales_data : SalesPerson[]
+}
+
 export interface CommentInfo {
   sales_person: string;
   id: number;
@@ -49,11 +70,12 @@ export interface AccountInfo {
   total_due: number;
   invoices: number;
   invoice_details: InvoiceDetail[];
+  paid_invoices: InvoiceDetail[];
   comments: CommentInfo[];
+  paid_comments: CommentInfo[];
   names : Each_Account_Name_List[];
   promised_amount: number;
   promised_date: string;
-  premium_user: boolean;
   credit_period: number;
 }
   
@@ -72,7 +94,9 @@ export interface Data_by_Day {
   total_due: number;
   invoices: number;
   invoice_details: InvoiceDetail[];
+  paid_invoices: InvoiceDetail[];
   comments: CommentInfo[];
+  paid_comments: CommentInfo[];
   names : Each_Account_Name_List[];
   promised_amount: number;
   promised_date: string;
@@ -113,3 +137,5 @@ export interface Each_Account_Name_List {
   name: string;
   phone_number : string;
 }
+
+

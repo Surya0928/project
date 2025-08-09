@@ -1,12 +1,23 @@
 /* src/pages/Home.css */
 
-.custom-scrollbar {
-    overflow-y: scroll; /* Enable vertical scrolling */
-    scrollbar-width: none; /* Hide scrollbar on Firefox */
-    -ms-overflow-style: none; /* Hide scrollbar on IE and Edge */
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+      display: none;
   }
+ /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+}
+}
   
-  .custom-scrollbar::-webkit-scrollbar {
-    display: none; /* Hide scrollbar on Chrome and Safari */
+
+/* In your styles file */
+.truncated-cell {
+    max-width: 150px; /* Adjust the width based on your design */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
