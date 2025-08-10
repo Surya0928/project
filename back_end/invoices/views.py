@@ -257,10 +257,11 @@ def import_data_from_csv(df, user_id):
 @require_POST
 @transaction.atomic
 def process_uploaded_csv(request):
+    user = Users.objects.all().first()
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            user_id = '1'
+            user_id = user
             url = data.get('url')
 
             # Step 1: Fetch HTML data

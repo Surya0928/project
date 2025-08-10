@@ -149,7 +149,7 @@ const Manager_DashBoard: React.FC = () => {
                   ))}
                 </select>
           </div>
-          {dashboard_data && dashboard_data.customers < 0 && (<div className='flex flex-col container bg-white w-full px-10 py-6 rounded-lg space-y-4'>
+          {dashboard_data && dashboard_data.customers < 1 && (<div className='flex flex-col container bg-white w-full px-10 py-6 rounded-lg space-y-4'>
             <div className='text-3xl text-gray-700'>
               Vasool.ai
             </div>
