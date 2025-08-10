@@ -12,12 +12,17 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 # Allow hosts from env var or fallback to '*'
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
-# Database config from DATABASE_URL env var (set by DO Managed DB)
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"postgres://be_paid_user:be_paid_password@127.0.0.1:5432/be-paid_db"
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'vasooldb',
+        'USER': 'vasooluser',
+        'PASSWORD': 'vasool_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }
+
 
 # Static files settings - collectstatic will put files here
 STATIC_ROOT = BASE_DIR / "staticfiles"
