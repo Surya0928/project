@@ -33,7 +33,7 @@ const Manager_Profile: React.FC = () => {
   const get_manager_data = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://159.89.160.186:8000/manager_data/', {
+      const response = await fetch('http://159.89.160.186/manager_data/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

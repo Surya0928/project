@@ -53,7 +53,7 @@ const BusinessInfoPage: React.FC = () => {
     };
     const create_manager = async () => {
       try {
-        const response = await fetch('http://159.89.160.186:8000/create_account/', {
+        const response = await fetch('http://159.89.160.186/create_account/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
