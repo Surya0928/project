@@ -10,12 +10,7 @@ import Pending_Accountant_Invoices from './pages/Accountant_UI/Pending_Invoices'
 import Paid_Accountant_Invoices from './pages/Accountant_UI/Paid_Invoices';
 // import Dashboard from './pages/Dashboard';
 import CSVUploadPage from './pages/upload_csv';
-import Pending from './pages/Pending';
-import Paid from './pages/Paid';
-import To_Do from './pages/To_Do';
 import Login from './pages/Login';
-import Review from './pages/Review';
-import Sales from './pages/Sales';
 import { AppProvider } from './components/app_variables';
 import SignUpPage from './pages/SignUpPage';
 import BusinessInfoPage from './pages/Business_Info_Page';
