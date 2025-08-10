@@ -76,7 +76,7 @@ const Manager_Customers: React.FC = () => {
   const get_customers = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/manager_customer_data/', {
+      const response = await fetch('http://159.89.160.186:8000/manager_customer_data/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

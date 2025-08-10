@@ -165,7 +165,7 @@ const AccountantCreateComment: React.FC<CustomerInfoProps> = ({ customer_name,in
   const fetchCustomerData = async () => {
     set_loading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/get_create_comment/', {
+      const response = await fetch('http://159.89.160.186:8000/get_create_comment/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ const AccountantCreateComment: React.FC<CustomerInfoProps> = ({ customer_name,in
 
     if (selected_invoices.length >0 && selectedOption && (promised_date || follow_up_date || paid_date)) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/create-comment/', {
+        const response = await fetch('http://159.89.160.186:8000/create-comment/', {
           
           method: 'POST',
           headers: {

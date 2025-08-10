@@ -38,7 +38,7 @@ const Manager_Sales_Persons: React.FC = () => {
   const get_sales_persons = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/sales_persons/', {
+      const response = await fetch('http://159.89.160.186:8000/sales_persons/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ const Manager_Sales_Persons: React.FC = () => {
         return; // Prevent form submission if email is invalid
       } 
     try {
-      const response = await fetch('http://127.0.0.1:8000/create_sales_person/', {
+      const response = await fetch('http://159.89.160.186:8000/create_sales_person/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

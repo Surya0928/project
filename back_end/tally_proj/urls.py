@@ -4,6 +4,7 @@ from invoices import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),  # Django admin URL
+    path('api/', include('invoices.urls')),
     path('invoices/', views.get_all_invoices, name='get_all_invoices'),
     path('full_data/', views.get_full_data, name='get_full_data'),
     path('process_uploaded_csv/', views.process_uploaded_csv, name='process_uploaded_csv'),

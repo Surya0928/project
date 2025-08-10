@@ -156,7 +156,7 @@ const Manager_Home: React.FC = () => {
 
   const fetchAccountants = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/accountants/', {
+      const response = await fetch('http://159.89.160.186:8000/accountants/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ const Manager_Home: React.FC = () => {
   const fetchCustomer = async (user: string, account : string) => {
     if (account && user) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/get_customer/', {
+        const response = await fetch('http://159.89.160.186:8000/get_customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ const Manager_Home: React.FC = () => {
   const update_target_collection = async () => {
     try {
       if (!inp_target_collection) return;
-      const response = await fetch('http://127.0.0.1:8000/update_target_collections/', {
+      const response = await fetch('http://159.89.160.186:8000/update_target_collections/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection1Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://127.0.0.1:8000/manager_1/', {
+      const response = await fetch('http://159.89.160.186:8000/manager_1/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +257,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection2Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://127.0.0.1:8000/manager_2/', {
+      const response = await fetch('http://159.89.160.186:8000/manager_2/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -282,7 +282,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection3Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://127.0.0.1:8000/manager_3/', {
+      const response = await fetch('http://159.89.160.186:8000/manager_3/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,7 +306,7 @@ const Manager_Home: React.FC = () => {
   const fetchSection4Data = async () => {
     try {
       if (!selectedAccountant) return;
-      const response = await fetch('http://127.0.0.1:8000/manager_4/', {
+      const response = await fetch('http://159.89.160.186:8000/manager_4/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
