@@ -82,31 +82,3 @@ class Name(models.Model):
 
     def _str_(self):
         return f"{self.invoice}"
-<<<<<<< HEAD
-=======
-    
-class Manager_Instructions(models.Model):
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='use', default=None, null=True, blank=True)
-    manager = models.ForeignKey(Manager, on_delete=models.CASCADE, related_name='man', default=None, null=True, blank=True)
-    customer = models.ForeignKey(Customers, on_delete=models.CASCADE, related_name='instruction_customer', default=None, null=True, blank=True)
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='instruction_manager', default=None, null=True, blank=True)
-    instruction = models.CharField(max_length=20000, null=True, blank=True)
-    created_date = models.DateField(null=True, blank=True)
-
-    def _str_(self):
-        return f"{self.customer}"
-
-class Flag_to_Manager(models.Model):
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, default=None)
-    invoice = models.ForeignKey(Customers, on_delete=models.CASCADE, default=None)
-    date = models.DateField(null=True, blank=True)
-    invoice_list = models.CharField(max_length=1000, null=True, blank=True)
-    remarks = models.CharField(max_length=1000, null=True, blank=True)
-    follow_up_date = models.DateField(null=True, blank=True)
-    sales_person = models.ForeignKey(Sales_Persons,on_delete=models.SET_NULL, default=None, null=True, blank=True)
-    promised_date = models.DateField(null=True, blank=True)
-    
-    def _str_(self):
-        return f"{self.invoice}"
-    
->>>>>>> 6653f01d (changes)

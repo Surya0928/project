@@ -1,7 +1,7 @@
 # invoices/admin.py
 
 from django.contrib import admin
-from .models import Customers, Invoice, Comments, Sales_Persons, Users, Name, Manager, Flag_to_Manager
+from .models import Customers, Invoice, Comments, Sales_Persons, Users, Name, Manager
 
 @admin.register(Manager)
 class InvoiceSalesPersonAdmin(admin.ModelAdmin):
@@ -30,8 +30,4 @@ class InvoiceCommentAdmin(admin.ModelAdmin):
 @admin.register(Name)
 class InvoiceNameAdmin(admin.ModelAdmin):
     search_fields = ['name', 'invoice', 'phone_number']
-
-@admin.register(Flag_to_Manager)
-class ManagerFlags(admin.ModelAdmin):
-    search_fields = ['date']
     
