@@ -34,8 +34,8 @@ def fetch_html_data(url):
             <EXPORTDATA>
                 <REQUESTDESC>
                     <STATICVARIABLES>
-                        <SVFROMDATE>20240728</SVFROMDATE>
-                        <SVTODATE>20240728</SVTODATE>
+                        <SVFROMDATE>20250810</SVFROMDATE>
+                        <SVTODATE>20250810</SVTODATE>
                         <SVEXPORTFORMAT>$$SysName:HTML</SVEXPORTFORMAT>
                     </STATICVARIABLES>
                     <REPORTNAME>Bills Receivable</REPORTNAME>
@@ -260,7 +260,7 @@ def process_uploaded_csv(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            user_id = data.get('user_id')
+            user_id = '1'
             url = data.get('url')
 
             # Step 1: Fetch HTML data
