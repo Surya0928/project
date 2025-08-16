@@ -35,7 +35,7 @@ const Manager_Users: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://159.89.160.186/all_users/', {
+      const response = await fetch('http://159.89.160.186:8000/all_users/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ const Manager_Users: React.FC = () => {
 
   const fetchSales = async () => {
     try {
-      const response = await fetch('http://159.89.160.186/sales/', {
+      const response = await fetch('http://159.89.160.186:8000/sales/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const Manager_Users: React.FC = () => {
 
   const Create_User = async () => {
     try {
-      const response = await fetch('http://159.89.160.186/create_user/', {
+      const response = await fetch('http://159.89.160.186:8000/create_user/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ const Manager_Users: React.FC = () => {
   const createSales = async () => {
     if (inp_sales_name && inp_sales_phone_number) {
       try {
-        const response = await fetch('http://159.89.160.186/create-sales/', {
+        const response = await fetch('http://159.89.160.186:8000/create-sales/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

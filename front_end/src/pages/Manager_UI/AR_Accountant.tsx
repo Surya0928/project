@@ -71,7 +71,7 @@ const Manager_Accountants: React.FC = () => {
   const get_accountants = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://159.89.160.186/accountants/', {
+      const response = await fetch('http://159.89.160.186:8000/accountants/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const Manager_Accountants: React.FC = () => {
   const create_accountant = async (method : string, accountant_id : number) => {
     setLoading(true)
     try {
-      const response = await fetch('http://159.89.160.186/create_accountant/', {
+      const response = await fetch('http://159.89.160.186:8000/create_accountant/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

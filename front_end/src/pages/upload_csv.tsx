@@ -46,13 +46,13 @@ const CSVUploadPage: React.FC = () => {
       <div className='flex w-auto space-x-2'>
         {all_invoices_number !== null && Number(all_invoices_number) === 0 && (
           <button 
-            onClick={() => handleProcess('http://159.89.160.186/process_uploaded_csv/')} 
+            onClick={() => handleProcess('http://159.89.160.186:8000/process_uploaded_csv/')} 
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold w-32 py-2 px-4 rounded">
             Create
           </button>
         )}
         <button 
-          onClick={() => handleProcess('http://159.89.160.186/process_update_csv/')} 
+          onClick={() => handleProcess('http://159.89.160.186:8000/process_update_csv/')} 
           className="bg-green-500 hover:bg-green-700 text-white font-bold w-32 py-2 px-4 rounded">
           Update
         </button>

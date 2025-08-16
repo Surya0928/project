@@ -73,7 +73,7 @@ const InvoiceInfo: React.FC<InvoiceInfoProps> = ({ customer_name, invoice_name,a
   const fetchInvoiceData = async () => {
     setloading(true)
     try {
-      const response = await fetch('http://159.89.160.186/get_invoice/', {
+      const response = await fetch('http://159.89.160.186:8000/get_invoice/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
