@@ -54,8 +54,12 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-# CORS - for quick start allow all origins, tighten later in production
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", # Example for React/Vite
+    "http://localhost:8080", # Example for Vue
+    "http://localhost:8100", # As per your CSRF setting
+    "http://159.89.160.186", # Your droplet IP
+]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^http://localhost:\d+$',
