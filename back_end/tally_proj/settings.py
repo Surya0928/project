@@ -30,13 +30,14 @@ DATABASES = {
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "/static/"
 
-# Add whitenoise middleware to serve static files in production
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # <- add whitenoise here
     'corsheaders.middleware.CorsMiddleware',        # move cors middleware early
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    # Add your custom CSRF middleware here to disable CSRF protection globally
+    "invoices.middleware.DisableCsrfMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
