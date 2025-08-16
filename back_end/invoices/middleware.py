@@ -9,3 +9,4 @@ class DisableCsrfMiddleware:
         setattr(request, '_dont_enforce_csrf_checks', True)
         response = self.get_response(request)
         return response
+    

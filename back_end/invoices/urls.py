@@ -7,5 +7,4 @@ router.register(r'invoices', InvoiceViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('api/', include('invoices.urls')),
 ]
