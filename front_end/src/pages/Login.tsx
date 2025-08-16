@@ -30,7 +30,7 @@ const Login: React.FC = () => {
   // const fetchfull = async (id: number) => {
   //   try {
   //     setLoading(true)
-  //     const response = await fetch('http://159.89.160.186:8000/full_data/', {
+  //     const response = await fetch('http://159.89.160.186/api/full_data/', {
   //       method: 'POST',
   //       headers: {
   //         'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ const Login: React.FC = () => {
   const Login = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://159.89.160.186:8000/login/', {
+      const response = await fetch('http://159.89.160.186/api/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

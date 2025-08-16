@@ -89,7 +89,7 @@ const AccountantCustomerInfo: React.FC<AccountantCustomerInfoProps> = ({ custome
   const fetchCustomerData = async () => {
     setloading(true)
     try {
-      const response = await fetch('http://159.89.160.186:8000/get_customer/', {
+      const response = await fetch('http://159.89.160.186/api/get_customer/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ const AccountantCustomerInfo: React.FC<AccountantCustomerInfoProps> = ({ custome
 
   const handleSaveCreditPeriod = async () => {
     try {
-      const response = await fetch('http://159.89.160.186:8000/customer_credit_period/', {
+      const response = await fetch('http://159.89.160.186/api/customer_credit_period/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ const AccountantCustomerInfo: React.FC<AccountantCustomerInfoProps> = ({ custome
 
   const handleAddName = async () => {
     try {
-      const response = await fetch('http://159.89.160.186:8000/customer_name_number/', {
+      const response = await fetch('http://159.89.160.186/api/customer_name_number/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
