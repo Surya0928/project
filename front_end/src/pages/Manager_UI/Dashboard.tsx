@@ -77,7 +77,7 @@ const Manager_DashBoard: React.FC = () => {
     setLoading(true);
     console.log('Fetching dashboard data for manager ID:', id, 'and accountant ID:', selectedAccountant);
     try {
-      const response = await fetch('http://159.89.160.186/manager_dashboard_data/', {
+      const response = await fetch('http://159.89.160.186/api/manager_dashboard_data/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

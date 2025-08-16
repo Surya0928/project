@@ -63,7 +63,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
   const get_invoices = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://159.89.160.186/accountant_paid_invoice_data/', {
+      const response = await fetch('http://159.89.160.186/api/accountant_paid_invoice_data/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

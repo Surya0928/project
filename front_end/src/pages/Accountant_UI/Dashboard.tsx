@@ -54,7 +54,7 @@ const Accountant_Dashboard: React.FC = () => {
   const fetchfull = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://159.89.160.186/to_do_invoices/', {
+      const response = await fetch('http://159.89.160.186/api/to_do_invoices/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
