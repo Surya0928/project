@@ -18,7 +18,7 @@ const ConnectTally: React.FC = () => {
     try {
       const user_id = sessionStorage.getItem('id'); // Fetch user id from sessionStorage
 
-      const response = await fetch('http://159.89.160.186/api/process_uploaded_csv/', {
+      const response = await fetch('http://159.89.160.186/process_uploaded_csv/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
