@@ -36,7 +36,7 @@ def fetch_html_data(url):
                     <STATICVARIABLES>
                         <SVFROMDATE>20250904</SVFROMDATE>
                         <SVTODATE>20250904</SVTODATE>
-                        <SVEXPORTFORMAT>$$SysName:HTML</SVEXPORTFORMAT>
+                        <SVEXPORTFORMAT>$$SysName:CSV</SVEXPORTFORMAT>
                     </STATICVARIABLES>
                     <REPORTNAME>Bills Receivable</REPORTNAME>
                 </REQUESTDESC>
@@ -47,50 +47,58 @@ def fetch_html_data(url):
 
     response = requests.post(url, headers=headers, data=xml_body)
     response.raise_for_status()  # Raise an exception for HTTP errors
+    print(response.text)
     return response.text
 
-def parse_html_to_csv(html_data):
-    soup = BeautifulSoup(html_data, 'html.parser')
-
-    # Find all tables
-    tables = soup.find_all('table')
-
-    header_row = None
-    for table in tables:
-        ths = table.find_all('td')
-        header_texts = [th.get_text(strip=True) for th in ths]
-        if "Date" in header_texts and "Ref. No." in header_texts:
-            header_row = table
-            break
-
-    if not header_row:
-        raise ValueError("Header row not found in HTML.")
-
-    # Extract columns
-    columns = [td.get_text(strip=True) for td in header_row.find_all('td')]
-
-    # Extract rows
-    rows = []
-    for sibling in header_row.find_all_next('tr'):
-        tds = sibling.find_all('td')
-        if len(tds) != len(columns):
-            continue  # skip rows that don't match column count
-        row = [td.get_text(strip=True).replace(',', '') for td in tds]
-        rows.append(row)
-
-    # Convert to DataFrame
-    df = pd.DataFrame(rows, columns=columns)
-    csv_data = df.to_csv(index=False)
-    return csv_data
-
-
+def parse_xml_to_dataframe(xml_data):
+    soup = BeautifulSoup(xml_data, 'html.parser')
+    records = []
+    
+    # Find all <BILLFIXED> tags which serve as the start of each record
+    bill_fixed_tags = soup.find_all('billfixed')
+    
+    # Iterate through each <BILLFIXED> tag and its subsequent siblings
+    for bill_fixed in bill_fixed_tags:
+        record = {}
+        
+        # Extract data from <BILLFIXED>
+        record['Date'] = bill_fixed.find('billdate').get_text(strip=True) if bill_fixed.find('billdate') else None
+        record['Ref. No.'] = bill_fixed.find('billref').get_text(strip=True) if bill_fixed.find('billref') else None
+        record['Party\'s Name'] = bill_fixed.find('billparty').get_text(strip=True) if bill_fixed.find('billparty') else None
+        
+        # Find subsequent siblings for the rest of the data
+        sibling = bill_fixed.next_sibling
+        while sibling:
+            if sibling.name == 'billcl':
+                # The pending amount is nested in this tag
+                record['Pending'] = sibling.get_text(strip=True).replace(',', '')
+            elif sibling.name == 'billdue':
+                record['Due on'] = sibling.get_text(strip=True)
+            elif sibling.name == 'billoverdue':
+                # The days passed is nested here
+                record['Days Passed'] = sibling.get_text(strip=True)
+            elif sibling.name == 'billfixed':
+                # Stop when we hit the next record
+                break
+            sibling = sibling.next_sibling
+            
+        records.append(record)
+        
+    # Create the DataFrame
+    df = pd.DataFrame(records)
+    
+    # Clean up the pending amount column by removing the negative sign
+    if 'Pending' in df.columns:
+        df['Pending'] = df['Pending'].str.replace('-', '').astype(float)
+    
+    return df
 def update_csv_file_format(csv_data):
     try:
         # Convert CSV data to a pandas DataFrame
         df = pd.read_csv(BytesIO(csv_data.encode('utf-8')))
 
         # Log the columns to debug
-        print("Columns in the CSV data:", df.columns.tolist())
+        # print("Columns in the CSV data:", df.columns.tolist())
 
         # Define existing and new columns
         existing_columns = ['Date', 'Ref. No.', "Party's Name", 'Pending', 'Due on']
@@ -130,7 +138,7 @@ def update_csv_file_format(csv_data):
 
         return updated_csv_data
     except Exception as e:
-        print("Error in update_csv_file_format:", e)
+        # print("Error in update_csv_file_format:", e)
         raise e  # Reraise the exception to propagate it to the caller
 
 def parse_date(date_str):
@@ -145,10 +153,9 @@ def parse_date(date_str):
     return {"success": False, "error": "Invalid date format"}
 
 def import_data_from_csv(df, user_id):
-    print("DataFrame content:")
-    print(df)
-    print("User ID:", user_id)
-
+    # print("DataFrame content:")
+    # print(df)
+    
     unique_list = df['party_name'].unique().tolist()
     user_instance = Users.objects.get(id=user_id)
 
@@ -188,15 +195,9 @@ def import_data_from_csv(df, user_id):
                 csv_invoice_refs.add(each['ref_no'])
 
         defaults = {
-            'optimal_due': round(optimal_due),
-            'threshold_due': round(threshold_due),
             'over_due': round(over_due),
             'total_due': round(total_due),
             'invoices': invoices,
-            'promised_date': customer[0].promised_date if len(customer) > 0 else None,
-            'promised_amount': customer[0].promised_amount if len(customer) > 0 else 0.0,
-            'name': name if name else None,
-            'phone_number': phone_number if phone_number else None,
             'credit_period': 90
         }
 
@@ -250,42 +251,67 @@ def import_data_from_csv(df, user_id):
                 invoice.old = True
                 invoice.save()
 
+
+
 @csrf_exempt
 @require_POST
 @transaction.atomic
 def process_uploaded_csv(request):
-    user = Users.objects.all()
-    print("User:", user)
+    user = Users.objects.all().first().id
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = user
-            print(user_id)
             url = data.get('url')
 
-            # Step 1: Fetch HTML data
-            html_data = fetch_html_data(url=url)
+            # Step 1: Fetch XML data
+            xml_data = fetch_html_data(url=url)
+            
+            # Step 2: Parse XML data directly into a DataFrame
+            df = parse_xml_to_dataframe(xml_data)
 
-            # Step 2: Convert HTML data to CSV format
-            csv_data = parse_html_to_csv(html_data)
-            # Step 3: Update CSV data format
-            updated_csv_data = update_csv_file_format(csv_data)
+            # Ensure necessary columns are present before proceeding
+            required_columns = ['Date', 'Ref. No.', 'Party\'s Name', 'Pending', 'Due on', 'Days Passed']
+            if not all(col in df.columns for col in required_columns):
+                raise ValueError("Missing required columns in the parsed data.")
+            
+            # Rename columns to match the model fields
+            new_column_names = {
+                'Date': 'invoice_date',
+                'Ref. No.': 'ref_no',
+                'Party\'s Name': 'party_name',
+                'Pending': 'pending_amount',
+                'Due on': 'due_date',
+                'Days Passed': 'days_passed' # Use the data from the XML
+            }
+            df = df.rename(columns=new_column_names)
 
-            # Step 4: Convert updated CSV data back to CSV file and process
-            df = pd.read_csv(BytesIO(updated_csv_data))
+            # Add 'name' and 'phone_number' columns for database fields
+            df['name'] = None
+            df['phone_number'] = None
 
-            # Clear existing data for the user
+            # Convert date columns to the correct format for the database
+            df['invoice_date'] = pd.to_datetime(df['invoice_date'], format='%d-%b-%y', errors='coerce').dt.strftime('%Y-%m-%d')
+            df['due_date'] = pd.to_datetime(df['due_date'], format='%d-%b-%y', errors='coerce').dt.strftime('%Y-%m-%d')
+            
+            # Filter out rows with invalid datetime values
+            df = df.dropna(subset=['invoice_date', 'due_date'])
+            
+            # Convert days_passed to int and handle errors
+            df['days_passed'] = pd.to_numeric(df['days_passed'], errors='coerce').fillna(0).astype(int)
+
+            # Clear existing data for the user before importing new data
             Customers.objects.using('default').filter(user=user_id).delete()
             Invoice.objects.using('default').filter(user=user_id).delete()
-            # Step 5: Import data from the updated CSV DataFrame into PostgreSQL
+
+            # Step 3: Import data from the updated DataFrame into PostgreSQL
             import_data_from_csv(df, user_id)
 
-            return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
+            return JsonResponse({'success': True, 'message': 'XML data processed and imported successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request or no file provided'}, status=400)
-
 @csrf_exempt
 @require_POST
 @transaction.atomic
@@ -298,16 +324,16 @@ def process_update_csv(request):
             html_data = fetch_html_data(url=url)
 
             # Step 2: Convert HTML data to CSV format
-            csv_data = parse_html_to_csv(html_data)
+            # csv_data = parse_html_to_csv(html_data)
 
             # Step 3: Update CSV data format
-            updated_csv_data = update_csv_file_format(csv_data)
+            # updated_csv_data = update_csv_file_format(csv_data)
 
-            # Step 4: Convert updated CSV data back to CSV file and process
-            df = pd.read_csv(BytesIO(updated_csv_data))
+            # # Step 4: Convert updated CSV data back to CSV file and process
+            # df = pd.read_csv(BytesIO(updated_csv_data))
 
-            # Step 5: Import data from the updated CSV DataFrame into PostgreSQL
-            import_data_from_csv(df, user_id)
+            # # Step 5: Import data from the updated CSV DataFrame into PostgreSQL
+            # import_data_from_csv(df, user_id)
 
             return JsonResponse({'success': True, 'message': 'CSV data processed and imported successfully'})
         except Exception as e:
@@ -338,7 +364,7 @@ def get_all_invoices(request):
         last_comment = Comments.objects.filter(user = user_id ,invoice=OuterRef('pk')).order_by('-id')
 
         customers = Customers.objects.filter(user = user_id)
-        #print(customers)
+        ## print(customers)
         # Annotate customers with the promised_date of the last comment
         if len(customers)>0:
             customers = Customers.objects.annotate(
@@ -348,7 +374,7 @@ def get_all_invoices(request):
 
             # Order the customers
             customers = customers.order_by( '-over_due', 'last_promised_date', 'id')
-            #print(customers)
+            ## print(customers)
             # Serialize the queryset
             customer_data = []
 
@@ -515,12 +541,12 @@ def create_comment(request):
             'comment_status': data.get('invoices_paid'),
             'follow_up_time': data.get('follow_up_time')
         }
-        print(7)
+        # print(7)
 
         serializer = CommentsSerializer(data=comment_data)
-        #print(serializer)
+        ## print(serializer)
         if serializer.is_valid():
-            #print(serializer.validated_data)
+            ## print(serializer.validated_data)
             comment = Comments.objects.create(
                 user=user_id,
                 invoice=customer,
@@ -560,7 +586,7 @@ def get_all_comments(request):
     user_id = Users.objects.get(id=data.get('user_id'))
     # Filter comments based on provided parameters
     comments_queryset = Comments.objects.filter(user = user_id)
-    #print(comments_queryset)
+    ## print(comments_queryset)
 
     # Serialize filtered queryset
     serializer = CommentsSerializer(comments_queryset, many=True)
@@ -781,7 +807,7 @@ def get_pending_invoices(request):
                     names = NameSerializer(named, many=True).data
                     customer_dict['names'] = names  # Add names here
                     customer_dict['invoice_details'] = InvoiceDetailSerializer(unpaid_invoices, many=True).data
-                    # print(customer_dict)
+                    # # print(customer_dict)
                     customer_data.append(customer_dict)
         else:   
             customer_data = []
@@ -859,15 +885,15 @@ def update_invoice_sales_person(request):
         for each in sales_data:
             ref_no = each[0]
             sales_person_name = each[1]
-            #print(f"Ref No: {ref_no}, Sales Person Name: {sales_person_name}")
+            ## print(f"Ref No: {ref_no}, Sales Person Name: {sales_person_name}")
 
             person = get_object_or_404(Invoice,user=user_id, ref_no=ref_no)
             sales_person_instance = get_object_or_404(Sales_Persons, name=sales_person_name)
-            #print(f"Fetched Sales Person: {sales_person_instance}")
+            ## print(f"Fetched Sales Person: {sales_person_instance}")
 
             person.sales_person = sales_person_instance
             person.save()
-            #print(person.sales_person)
+            ## print(person.sales_person)
 
         return JsonResponse({'status': 'success', 'message': 'Comment updated successfully.'})
 
@@ -898,7 +924,7 @@ def login(request):
             users = get_object_or_404(Manager, username=username)
         if users:
             if users.password == password:
-                #print(''yes')
+                ## print(''yes')
                 return JsonResponse({'id': users.id, 'username': users.username})
             
         return JsonResponse({'error': 'Incorrect password'}, status=400)
@@ -943,7 +969,7 @@ def export_to_csv(model_class, file_path):
         for instance in model_class.objects.all():
             writer.writerow([getattr(instance, field) for field in field_names])
     
-    #print('f'Data exported successfully to {file_path}')
+    ## print('f'Data exported successfully to {file_path}')
 
 # export_to_csv(Sales_Persons, 'sales_persons.csv')
 # export_to_csv(Users, 'users.csv')
@@ -979,9 +1005,9 @@ def import_from_csv(model_class, file_path):
                 }
 
                 serializer = UsersSerializer(data=users)
-                #print('serializer, 2)
+                ## print('serializer, 2)
                 if serializer.is_valid():
-                    #print('serializer.validated_data, 1)
+                    ## print('serializer.validated_data, 1)
                     user = Users.objects.create(
                         username = serializer.validated_data.get('username'),
                         password = serializer.validated_data.get('password'),
@@ -995,7 +1021,7 @@ def import_from_csv(model_class, file_path):
                     field_name = field.name
                     field_value = row[field_name]
                     sales_values[field_name]= field_value
-                    #print('sales_values)
+                    ## print('sales_values)
                 sales = {
                     'name' : sales_values['name'] or '',
                     'phone_number' : sales_values['phone_number'] or '',
@@ -1004,9 +1030,9 @@ def import_from_csv(model_class, file_path):
                 }
 
                 serializer = SalesPersonsSerializer(data=sales)
-                #print('serializer, 2)
+                ## print('serializer, 2)
                 if serializer.is_valid():
-                    #print('serializer.validated_data, 1)
+                    ## print('serializer.validated_data, 1)
                     sale = Sales_Persons.objects.create(
                         name = serializer.validated_data.get('name'),
                         phone_number = serializer.validated_data.get('phone_number'),
@@ -1029,7 +1055,7 @@ def create_customer_name(request):
     invoice = get_object_or_404(Customers, user = data.get('user'), account = data.get('invoice'))
     credit = data.get('credit_period')
     if credit:
-        print(credit)
+        # print(credit)
         invoice.credit_period = credit
         over_due = 0
         invoice_list = Invoice.objects.filter(user=data.get('user'), days_passed__gt=credit)
@@ -1037,7 +1063,7 @@ def create_customer_name(request):
             over_due+= each.pending
         invoice.over_due = over_due
         invoice.save()
-        print(invoice.credit_period)
+        # print(invoice.credit_period)
     name = data.get('name')
     phone_number = data.get('phone_number')
     if name and phone_number:
@@ -1602,15 +1628,15 @@ def manager_4(request):
                     for comment in comments:
                         if '.' in comment.remarks:
                             remark = comment.remarks.split('.')[0]
-                            print(remark, customer)
-                            print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
+                            # print(remark, customer)
+                            # print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
                             if remark in condition_counts.keys():
                                 condition_counts[remark] += 1
                             else:
                                 condition_counts['Other'] +=1
                         else:
                             condition_counts['Other'] +=1
-                    # print(condition_counts, customer.account)
+                    # # print(condition_counts, customer.account)
                     is_in = code(conditions, condition_counts)
                     if is_in:
                         # Account name, person name & contact number, number of comments, amount overdue, days overdue
@@ -1634,15 +1660,15 @@ def manager_4(request):
                 for comment in comments:
                     if '.' in comment.remarks:
                         remark = comment.remarks.split('.')[0]
-                        print(remark, customer)
-                        print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
+                        # print(remark, customer)
+                        # print(condition_counts[remark])  # Get the first part of remarks, convert to lowercase
                         if remark in condition_counts.keys():
                             condition_counts[remark] += 1
                         else:
                             condition_counts['Other'] +=1
                     else:
                         condition_counts['Other'] +=1
-                # print(condition_counts, customer.account)
+                # # print(condition_counts, customer.account)
                 is_in = code(conditions, condition_counts)
                 if is_in:
                     # Account name, person name & contact number, number of comments, amount overdue, days overdue
@@ -1863,7 +1889,7 @@ def get_manager_data(request):
         manager = get_object_or_404(Manager, id =data.get('id'))
         manager_data = ManagerSerializer(manager).data
         manager_data.popitem('password')
-        print(manager_data)
+        # print(manager_data)
 
 
         return Response({'manager_data' : manager_data}, status=status.HTTP_201_CREATED)
@@ -2266,7 +2292,7 @@ def manager_dashboard_data(request):
     data = json.loads(request.body)
     manager_id = data.get('manager_id')
     accountant_id = data.get('accountant_id')
-    print(accountant_id)
+    # print(accountant_id)
 
     # Get all accountants under this manager
     accountants = Users.objects.filter(manager=manager_id)
@@ -2275,7 +2301,7 @@ def manager_dashboard_data(request):
     # If accountant_id provided, limit to that accountant
     if accountant_id:
         accounts = accountants.filter(id=accountant_id)
-        print(accounts[0].username, accounts[0].id)
+        # print(accounts[0].username, accounts[0].id)
     else:
         accounts = accountants
 
@@ -2297,7 +2323,7 @@ def manager_dashboard_data(request):
     
     # Fetch customer and invoice data
     for account in accounts:
-        print(account.username, account.id, 2)
+        # print(account.username, account.id, 2)
         customers = Customers.objects.filter(user=account).order_by('-over_due')
         dashboard_data['customers'] += customers.count()
         dashboard_data['invoices'] += Invoice.objects.filter(user=account).count()
