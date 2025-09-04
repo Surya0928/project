@@ -133,10 +133,10 @@ const Manager_Invoices: React.FC = () => {
     // Handle cases where fieldValue is null or undefined
     if (fieldValue === undefined || fieldValue === null) return false;
   
-    const lowerCaseFilterValue = filterValue.toLowerCase();
+    const lowerCaseFilterValue = filterValue;
     
     if (typeof fieldValue === 'string') {
-      const lowerCaseFieldValue = fieldValue.toLowerCase();
+      const lowerCaseFieldValue = fieldValue;
       switch (filterOperator) {
         case '=':
           return lowerCaseFieldValue.includes(lowerCaseFilterValue);
@@ -179,10 +179,21 @@ const Manager_Invoices: React.FC = () => {
   
   
 
-  const filteredInvoices = sortedInvoices
-    .filter((invoice) => invoice.ref_no.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((invoice) => selectedAccountant === null || invoice.ar_accountant === selectedAccountant)
-    .filter(applyUserFilter);
+  // const filteredInvoices = sortedInvoices
+  //   .filter((invoice) => invoice.ref_no.includes(searchQuery))
+  //   .filter((invoice) => selectedAccountant === null || invoice.ar_accountant === selectedAccountant)
+  //   .filter(applyUserFilter);
+
+    const filteredInvoices = sortedInvoices
+  .filter((invoice) => {
+    // check search across multiple fields if you like
+    const query = searchQuery.toLowerCase();
+    return (
+      invoice.customer_name.toLowerCase().includes(query) ||
+      (invoice.ref_no && invoice.ref_no.toLowerCase().includes(query))
+    );
+  })
+  .filter(applyUserFilter);
 
     const handleColumnDrag = (event: React.DragEvent<HTMLDivElement>, column: string) => {
       event.dataTransfer.setData('text/plain', column);
@@ -277,7 +288,7 @@ const Manager_Invoices: React.FC = () => {
                     .filter((column) => column !== 'ar_accountant')  // Exclude 'ar_accountant'
                     .map((column) => (
                       <option key={column} value={column}>
-                        {column.toLowerCase()}
+                        {column}
                       </option>
                     ))}
                 </select>

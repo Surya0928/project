@@ -167,6 +167,16 @@ const Paid_Accountant_Invoices: React.FC = () => {
   // const filteredInvoices = sortedInvoices
   // .filter((invoice) => invoice.ref_no.includes(searchQuery))
   // .filter(applyUserFilter);
+    const filteredInvoices = sortedInvoices
+  .filter((invoice) => {
+    // check search across multiple fields if you like
+    const query = searchQuery.toLowerCase();
+    return (
+      invoice.customer_name.toLowerCase().includes(query) ||
+      (invoice.ref_no && invoice.ref_no.toLowerCase().includes(query))
+    );
+  })
+  .filter(applyUserFilter);
 
     const handleColumnDrag = (event: React.DragEvent<HTMLDivElement>, column: string) => {
       event.dataTransfer.setData('text/plain', column);
@@ -276,7 +286,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
                 />
               </div>
               <div className='text-lg text-gray-600'>
-                Number of Invoices: {sortedInvoices.length}
+                Number of Invoices: {filteredInvoices.length}
               </div>
             </div>
             
@@ -339,7 +349,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {sortedInvoices.map((invoice, index) => (
+                {filteredInvoices.map((invoice, index) => (
                   <tr
                     key={invoice.id}
                     onClick={() => {set_show_invoice_popup(true); setSelectedInvoice(invoice)}}
