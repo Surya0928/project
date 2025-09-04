@@ -120,12 +120,12 @@ const Pending_Accountant_Customers: React.FC = () => {
     if (filterValue === '') return true;
 
     const fieldValue = customer[filterField];
-    const lowerCaseFilterValue = filterValue.toLowerCase();
+    const lowerCaseFilterValue = filterValue;
     
     if (fieldValue === undefined) return false;
 
     if (typeof fieldValue === 'string') {
-      const lowerCaseFieldValue = fieldValue.toLowerCase();
+      const lowerCaseFieldValue = fieldValue;
       
       switch (filterOperator) {
         case '=':
@@ -155,7 +155,7 @@ const Pending_Accountant_Customers: React.FC = () => {
   };
 
   const filteredCustomers = sortedCustomers
-    .filter((customer) => customer.customer_name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((customer) => customer.customer_name.includes(searchQuery))
     .filter(applyUserFilter);
 
     const handleColumnDrag = (event: React.DragEvent<HTMLDivElement>, column: string) => {
@@ -236,7 +236,7 @@ const Pending_Accountant_Customers: React.FC = () => {
                   {visibleColumns
                     .map((column) => (
                       <option key={column} value={column}>
-                        {column.toLowerCase()}
+                        {column}
                       </option>
                     ))}
                 </select>

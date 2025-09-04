@@ -118,10 +118,10 @@ const Paid_Accountant_Invoices: React.FC = () => {
     // Handle cases where fieldValue is null or undefined
     if (fieldValue === undefined || fieldValue === null) return false;
   
-    const lowerCaseFilterValue = filterValue.toLowerCase();
+    const lowerCaseFilterValue = filterValue;
     
     if (typeof fieldValue === 'string') {
-      const lowerCaseFieldValue = fieldValue.toLowerCase();
+      const lowerCaseFieldValue = fieldValue;
       switch (filterOperator) {
         case '=':
           return lowerCaseFieldValue.includes(lowerCaseFilterValue);
@@ -164,9 +164,9 @@ const Paid_Accountant_Invoices: React.FC = () => {
   
   
 
-  const filteredInvoices = sortedInvoices
-  .filter((invoice) => invoice.ref_no.toLowerCase().includes(searchQuery.toLowerCase()))
-  .filter(applyUserFilter);
+  // const filteredInvoices = sortedInvoices
+  // .filter((invoice) => invoice.ref_no.includes(searchQuery))
+  // .filter(applyUserFilter);
 
     const handleColumnDrag = (event: React.DragEvent<HTMLDivElement>, column: string) => {
       event.dataTransfer.setData('text/plain', column);
@@ -249,7 +249,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
                     .filter((column) => column !== 'ar_accountant')  // Exclude 'ar_accountant'
                     .map((column) => (
                       <option key={column} value={column}>
-                        {column.toLowerCase()}
+                        {column}
                       </option>
                     ))}
                 </select>
@@ -276,7 +276,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
                 />
               </div>
               <div className='text-lg text-gray-600'>
-                Number of Invoices: {filteredInvoices.length}
+                Number of Invoices: {sortedInvoices.length}
               </div>
             </div>
             
@@ -339,7 +339,7 @@ const Paid_Accountant_Invoices: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredInvoices.map((invoice, index) => (
+                {sortedInvoices.map((invoice, index) => (
                   <tr
                     key={invoice.id}
                     onClick={() => {set_show_invoice_popup(true); setSelectedInvoice(invoice)}}
