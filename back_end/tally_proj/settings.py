@@ -10,7 +10,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key")
 DEBUG = False
 
 # Allow hosts from env var or fallback to '*'
-ALLOWED_HOSTS = ['159.89.160.186']
+ALLOWED_HOSTS = ['159.89.160.186', '127.0.0.1', 'localhost']
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

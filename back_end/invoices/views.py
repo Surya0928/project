@@ -34,8 +34,8 @@ def fetch_html_data(url):
             <EXPORTDATA>
                 <REQUESTDESC>
                     <STATICVARIABLES>
-                        <SVFROMDATE>20250810</SVFROMDATE>
-                        <SVTODATE>20250810</SVTODATE>
+                        <SVFROMDATE>20250904</SVFROMDATE>
+                        <SVTODATE>20250904</SVTODATE>
                         <SVEXPORTFORMAT>$$SysName:HTML</SVEXPORTFORMAT>
                     </STATICVARIABLES>
                     <REPORTNAME>Bills Receivable</REPORTNAME>
@@ -52,41 +52,37 @@ def fetch_html_data(url):
 def parse_html_to_csv(html_data):
     soup = BeautifulSoup(html_data, 'html.parser')
 
-    outer_tables = soup.find_all('table', width="1297")
-    if len(outer_tables) < 2:
-        raise ValueError("The second outer table was not found")
+    # Find all tables
+    tables = soup.find_all('table')
 
-    second_outer_table = outer_tables[1]
-    inner_tables = second_outer_table.find_all('table', width="100%")
-    if len(inner_tables) < 3:
-        raise ValueError("The third inner table within the second outer table was not found")
+    header_row = None
+    for table in tables:
+        ths = table.find_all('td')
+        header_texts = [th.get_text(strip=True) for th in ths]
+        if "Date" in header_texts and "Ref. No." in header_texts:
+            header_row = table
+            break
 
-    third_inner_table = inner_tables[2]
-    final_tables = third_inner_table.find_all('table')
+    if not header_row:
+        raise ValueError("Header row not found in HTML.")
 
-    column_names_td = final_tables[0].find_all('td')
-    columns = []
-    for column in column_names_td:
-        cleaned_text = column.text.strip().replace('\xa0', '')
-        if cleaned_text:  # Add to the list only if it's not empty
-            columns.append(cleaned_text)
+    # Extract columns
+    columns = [td.get_text(strip=True) for td in header_row.find_all('td')]
 
-    rows_and_values = final_tables[2:-1]
+    # Extract rows
     rows = []
-    for row in rows_and_values:
-        single_row = []
-        row_value = row.find_all('td')
-        for every in row_value:
-            cleaned_text = every.text.strip().replace('\xa0', '')
-            if cleaned_text:  # Add to the row only if it's not empty
-                single_row.append(cleaned_text)
-        single_row[3] = round(float(single_row[3].replace(',', '')))
-        rows.append(single_row)
+    for sibling in header_row.find_all_next('tr'):
+        tds = sibling.find_all('td')
+        if len(tds) != len(columns):
+            continue  # skip rows that don't match column count
+        row = [td.get_text(strip=True).replace(',', '') for td in tds]
+        rows.append(row)
 
-    # Convert data to CSV format using pandas
+    # Convert to DataFrame
     df = pd.DataFrame(rows, columns=columns)
     csv_data = df.to_csv(index=False)
     return csv_data
+
 
 def update_csv_file_format(csv_data):
     try:
@@ -151,7 +147,8 @@ def parse_date(date_str):
 def import_data_from_csv(df, user_id):
     print("DataFrame content:")
     print(df)
-    
+    print("User ID:", user_id)
+
     unique_list = df['party_name'].unique().tolist()
     user_instance = Users.objects.get(id=user_id)
 
@@ -257,11 +254,13 @@ def import_data_from_csv(df, user_id):
 @require_POST
 @transaction.atomic
 def process_uploaded_csv(request):
-    user = Users.objects.all().first()
+    user = Users.objects.all()
+    print("User:", user)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_id = user
+            print(user_id)
             url = data.get('url')
 
             # Step 1: Fetch HTML data
@@ -269,7 +268,6 @@ def process_uploaded_csv(request):
 
             # Step 2: Convert HTML data to CSV format
             csv_data = parse_html_to_csv(html_data)
-
             # Step 3: Update CSV data format
             updated_csv_data = update_csv_file_format(csv_data)
 
@@ -279,7 +277,6 @@ def process_uploaded_csv(request):
             # Clear existing data for the user
             Customers.objects.using('default').filter(user=user_id).delete()
             Invoice.objects.using('default').filter(user=user_id).delete()
-
             # Step 5: Import data from the updated CSV DataFrame into PostgreSQL
             import_data_from_csv(df, user_id)
 
